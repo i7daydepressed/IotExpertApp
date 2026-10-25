@@ -23,6 +23,11 @@ public partial class MainViewModel : ViewModelBase
     public ObservableCollection<ObservationRow> Observations { get; } = new ObservableCollection<ObservationRow>();
     [ObservableProperty] private string? selectedPort;
     [ObservableProperty] private string replayPath = "";
+    [ObservableProperty] private string capturePath = "";
+    [ObservableProperty] private bool timedReplay = true;
+    [ObservableProperty] private string playback = "";
+    [ObservableProperty] private string capture = "запись выключена";
+    [ObservableProperty] private string pauseText = "Пауза / продолжить";
     [ObservableProperty] private string status = "отключено";
     [ObservableProperty] private string identity = "нет принятого пакета";
     [ObservableProperty] private string statistics = "";
@@ -55,7 +60,7 @@ public partial class MainViewModel : ViewModelBase
     private async Task ConnectAsync()
     {
         if (string.IsNullOrWhiteSpace(SelectedPort)) { Message = "выбери последовательный порт"; return; }
-        await receiver.StartSerialAsync(SelectedPort);
+        await receiver.StartSerialAsync(SelectedPort, CapturePath);
     }
 
     [RelayCommand]
@@ -64,10 +69,16 @@ public partial class MainViewModel : ViewModelBase
         try
         {
             if (!File.Exists(ReplayPath)) { Message = "файл не найден"; return; }
-            await receiver.StartFileAsync(ReplayPath);
+            await receiver.StartFileAsync(ReplayPath, TimedReplay);
         }
         catch (Exception exception) { Message = exception.Message; }
     }
+
+    [RelayCommand]
+    private void TogglePause() => receiver.ToggleReplayPause();
+
+    [RelayCommand]
+    private async Task StopCaptureAsync() => await receiver.StopCaptureAsync();
 
     [RelayCommand]
     private async Task StopAsync() => await receiver.StopAsync();
@@ -76,7 +87,10 @@ public partial class MainViewModel : ViewModelBase
     {
         ReceiverState state = receiver.GetState();
         Status = state.Status + " | " + state.Origin;
-        Statistics = $"принято: {state.Valid} | логи: {state.Logs} | ошибки: {state.Invalid} | порядок: {state.RejectedOrder} | пропуски: {state.Missing} | длинные: {state.Oversized} | хвосты: {state.Tails}";
+        Playback = state.Playback;
+        Capture = state.Capture;
+        PauseText = state.ReplayPaused ? "Продолжить" : "Пауза";
+        Statistics = $"принято: {state.Valid} | логи: {state.Logs} | ошибки: {state.Invalid} | последовательность наблюдений: {state.TemporalRejected} | порядок: {state.RejectedOrder} | пропуски: {state.Missing} | длинные: {state.Oversized} | хвосты: {state.Tails}";
         // локальная ошибка команды остается видимой до следующего сообщения приемника
         if (shownReceiverMessage != state.LastMessage)
         {

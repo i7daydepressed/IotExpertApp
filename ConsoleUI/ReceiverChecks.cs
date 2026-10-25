@@ -78,6 +78,7 @@ public static class ReceiverChecks
             Check(!store.TryApply(first with { Sequence = 9, UptimeMs = 50 }, "synthetic", out _, out _), "откат uptime");
             Check(store.TryApply(first with { Sequence = 0, UptimeMs = 1, BootId = new string('b', 32) }, "synthetic", out _, out _), "новый boot");
             CheckLifecycleAsync(json).GetAwaiter().GetResult();
+            ReceiverStep02Checks.Run();
             Console.WriteLine("проверки приемника пройдены; входы искусственные, оборудование не проверялось");
             return 0;
         }

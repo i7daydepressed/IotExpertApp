@@ -17,6 +17,12 @@
                 <Button Content="Подключиться" Command="{Binding ConnectCommand}" Margin="0,0,8,8"/>
                 <Button Content="Остановить" Command="{Binding StopCommand}" Margin="0,0,8,8"/>
             </WrapPanel>
+            <TextBox Text="{Binding CapturePath}" PlaceholderText="Новый файл записи при подключении (пусто — без записи), лимит 10 МиБ"/>
+            <WrapPanel>
+                <Button Content="Завершить запись" Command="{Binding StopCaptureCommand}" Margin="0,0,8,8"/>
+                <CheckBox Content="Воспроизводить по времени" IsChecked="{Binding TimedReplay}" Margin="0,0,8,8"/>
+                <Button Content="{Binding PauseText}" Command="{Binding TogglePauseCommand}" Margin="0,0,8,8"/>
+            </WrapPanel>
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                 <TextBox Text="{Binding ReplayPath}" PlaceholderText="Абсолютный путь к UART-записи"/>
                 <Button Grid.Column="1" Content="Прочитать файл" Command="{Binding ReadFileCommand}"/>
@@ -27,6 +33,8 @@
             <TextBlock Text="{Binding Identity}" TextWrapping="Wrap"/>
             <TextBlock Text="{Binding LocalDiagnostic}" TextWrapping="Wrap"/>
             <TextBlock Text="{Binding Statistics}" TextWrapping="Wrap"/>
+            <TextBlock Text="{Binding Playback}" TextWrapping="Wrap"/>
+            <TextBlock Text="{Binding Capture}" TextWrapping="Wrap"/>
         </StackPanel>
         <ScrollViewer Grid.Row="2">
             <ItemsControl ItemsSource="{Binding Observations}">

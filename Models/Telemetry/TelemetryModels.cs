@@ -22,4 +22,5 @@ public sealed record Frame(string? Text, bool Oversized, bool JsonCandidate);
 public sealed record ReceiverState(
     string Status, string Origin, long Valid, long Logs, long Invalid,
     long RejectedOrder, long Missing, long Oversized, long Tails,
-    string LastMessage, ReceivedSnapshot? Snapshot);
+    string LastMessage, ReceivedSnapshot? Snapshot, long TemporalRejected,
+    bool Running, bool Completed, bool ReplayPaused, string Playback, string Capture);
