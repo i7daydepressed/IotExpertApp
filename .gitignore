@@ -1,0 +1,21 @@
+# результаты сборки .NET
+[Bb]in/
+[Oo]bj/
+
+# локальные файлы IDE
+.vs/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# результаты тестов
+TestResults/
+
+# служебные файлы ОС
+.DS_Store
+Thumbs.db
+
+# локальная документация
+docs/
