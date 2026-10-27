@@ -8,23 +8,25 @@ using IotExpertApp.Models.Telemetry;
 
 namespace IotExpertApp.Services.Telemetry;
 
-public sealed class TelemetryParser
-{
-    private static readonly Dictionary<string, string> Expected = new Dictionary<string, string>
-    {
-        ["esp32"] = "system", ["oled"] = "display", ["dht11"] = "temperature_humidity",
-        ["light"] = "digital_input", ["ir"] = "digital_input", ["pir"] = "digital_input",
-        ["microsd"] = "storage_test", ["relay_1"] = "relay_output", ["relay_2"] = "relay_output"
+public sealed class TelemetryParser {
+    private static readonly Dictionary<string, string> Expected = new Dictionary<string, string> {
+        ["esp32"] = "system",
+        ["oled"] = "display",
+        ["dht11"] = "temperature_humidity",
+        ["light"] = "digital_input",
+        ["ir"] = "digital_input",
+        ["pir"] = "digital_input",
+        ["microsd"] = "storage_test",
+        ["relay_1"] = "relay_output",
+        ["relay_2"] = "relay_output"
     };
 
     // строку сначала проверяем целиком: дубли ключей, типы, профиль и согласованность наблюдений
     // у каждого источника попытка и последний успех могут различаться, например после ошибки DHT
     // только после всех проверок возвращаем пакет, чтобы неверная строка не заменила текущий снимок
-    public bool TryParse(string text, out TelemetryPacket? packet, out string error)
-    {
+    public bool TryParse(string text, out TelemetryPacket? packet, out string error) {
         packet = null;
-        try
-        {
+        try {
             using JsonDocument document = JsonDocument.Parse(text, new JsonDocumentOptions { MaxDepth = 32 });
             JsonElement root = document.RootElement;
             CheckKeys(root);
@@ -44,8 +46,7 @@ public sealed class TelemetryParser
             Require(items.ValueKind == JsonValueKind.Array, "observations должен быть массивом");
             List<Observation> observations = new List<Observation>();
             HashSet<string> ids = new HashSet<string>(StringComparer.Ordinal);
-            foreach (JsonElement item in items.EnumerateArray())
-            {
+            foreach (JsonElement item in items.EnumerateArray()) {
                 string id = Text(item, "source_id");
                 string type = Text(item, "source_type");
                 Require(ids.Add(id), "повтор source_id: " + id);
@@ -76,8 +77,7 @@ public sealed class TelemetryParser
                 if (status is "unavailable" or "error")
                     Require(attempt.HasValue && consecutive > 0 && !string.IsNullOrEmpty(detail), "ошибка без попытки/причины");
                 int? raw = item.TryGetProperty("raw_level", out JsonElement rawValue) && rawValue.ValueKind != JsonValueKind.Null ? rawValue.GetInt32() : null;
-                if (id == "pir")
-                {
+                if (id == "pir") {
                     Require(item.TryGetProperty("raw_level", out _), "нет raw_level PIR");
                     Require(raw is null or 0 or 1, "raw_level вне 0/1");
                     Require(!hasValues, "непроверенный PIR не должен иметь values");
@@ -94,18 +94,15 @@ public sealed class TelemetryParser
             return true;
         }
         catch (Exception exception) when (exception is JsonException or InvalidOperationException or
-            KeyNotFoundException or FormatException or OverflowException or InvalidDataException)
-        {
+            KeyNotFoundException or FormatException or OverflowException or InvalidDataException) {
             error = exception.Message;
             return false;
         }
     }
 
-    private static void ValidateValues(string id, JsonElement values)
-    {
+    private static void ValidateValues(string id, JsonElement values) {
         Require(values.ValueKind == JsonValueKind.Object, "values должен быть объектом");
-        switch (id)
-        {
+        switch (id) {
             case "esp32":
                 ulong free = values.GetProperty("free_heap_bytes").GetUInt64();
                 ulong minimum = values.GetProperty("min_free_heap_bytes").GetUInt64();
@@ -135,13 +132,10 @@ public sealed class TelemetryParser
 
     // в объекте проверяем уникальность имен, затем спускаемся в его значения и элементы массивов
     // скаляр завершает обход: вложенных ключей у него нет
-    private static void CheckKeys(JsonElement element)
-    {
-        if (element.ValueKind == JsonValueKind.Object)
-        {
+    private static void CheckKeys(JsonElement element) {
+        if (element.ValueKind == JsonValueKind.Object) {
             HashSet<string> names = new HashSet<string>(StringComparer.Ordinal);
-            foreach (JsonProperty property in element.EnumerateObject())
-            {
+            foreach (JsonProperty property in element.EnumerateObject()) {
                 Require(names.Add(property.Name), "дублирующий ключ JSON: " + property.Name);
                 CheckKeys(property.Value);
             }
@@ -150,8 +144,7 @@ public sealed class TelemetryParser
             foreach (JsonElement child in element.EnumerateArray()) CheckKeys(child);
     }
 
-    private static string Text(JsonElement item, string key)
-    {
+    private static string Text(JsonElement item, string key) {
         string? text = item.GetProperty(key).GetString();
         Require(!string.IsNullOrWhiteSpace(text), "пустое поле: " + key);
         return text!;
@@ -159,8 +152,7 @@ public sealed class TelemetryParser
     private static string? NullableText(JsonElement item, string key) => item.GetProperty(key).ValueKind == JsonValueKind.Null ? null : Text(item, key);
     private static ulong? NullableUInt(JsonElement item, string key) => item.GetProperty(key).ValueKind == JsonValueKind.Null ? null : item.GetProperty(key).GetUInt64();
     private static int? NullableInt(JsonElement item, string key) => item.GetProperty(key).ValueKind == JsonValueKind.Null ? null : item.GetProperty(key).GetInt32();
-    private static void Require(bool condition, string message)
-    {
+    private static void Require(bool condition, string message) {
         if (!condition) throw new InvalidDataException(message);
     }
 }

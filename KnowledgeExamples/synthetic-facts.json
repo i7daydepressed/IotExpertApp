@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "facts": [
+    {
+      "fact_id": "operator_ready",
+      "value": true,
+      "origin": "synthetic/manual"
+    },
+    {
+      "fact_id": "sample_count",
+      "value": 3,
+      "origin": "synthetic/manual"
+    },
+    {
+      "fact_id": "ambient",
+      "value": 24,
+      "origin": "synthetic/manual"
+    },
+    {
+      "fact_id": "mode",
+      "value": "demo",
+      "origin": "synthetic/manual"
+    }
+  ]
+}

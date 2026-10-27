@@ -12,10 +12,8 @@ using IotExpertApp.Services.Telemetry;
 
 namespace IotExpertApp.ConsoleUI;
 
-public static class ReceiverStep02Checks
-{
-    public static void Run()
-    {
+public static class ReceiverStep02Checks {
+    public static void Run() {
         CheckProgress();
         CheckCapture();
         CheckReplayAsync().GetAwaiter().GetResult();
@@ -23,8 +21,7 @@ public static class ReceiverStep02Checks
         Console.WriteLine("проверки шага 02: искусственные переходы, запись байтов, replay/пауза/Stop");
     }
 
-    private static void CheckProgress()
-    {
+    private static void CheckProgress() {
         TelemetryParser parser = new TelemetryParser();
         Require(parser.TryParse(ReceiverChecks.CreateSyntheticPacket(), out TelemetryPacket? parsed, out string error), error);
         TelemetryPacket first = parsed! with { Sequence = 1 };
@@ -35,8 +32,15 @@ public static class ReceiverStep02Checks
         Require(!validator.TryValidate(first, Replace(same, dht with { LastAttemptMs = 90 }), out _), "откат времени");
         Require(!validator.TryValidate(first, Replace(same, dht with { AttemptCount = 0 }), out _), "откат счетчика");
         Require(!validator.TryValidate(first, Replace(same, dht with { LastAttemptMs = 200 }), out _), "изменение без попытки");
-        Observation failed = dht with { LastAttemptMs = 200, AttemptCount = 2, ConsecutiveErrors = 1,
-            Status = "error", ErrorCode = 263, ErrorDomain = "esp_err", ErrorDetail = "synthetic_timeout" };
+        Observation failed = dht with {
+            LastAttemptMs = 200,
+            AttemptCount = 2,
+            ConsecutiveErrors = 1,
+            Status = "error",
+            ErrorCode = 263,
+            ErrorDomain = "esp_err",
+            ErrorDetail = "synthetic_timeout"
+        };
         Require(validator.TryValidate(first, Replace(same, failed), out error), error);
         Observation impossible = failed with { LastSuccessMs = 200 };
         Require(!validator.TryValidate(first, Replace(same, impossible), out _), "одна ошибка не создает успех");
@@ -66,29 +70,23 @@ public static class ReceiverStep02Checks
         TelemetryPacket nearLimit = Replace(first, dht with { AttemptCount = ulong.MaxValue - 1 });
         Require(validator.TryValidate(nearLimit, Replace(same, hiddenSuccess with { AttemptCount = ulong.MaxValue }), out _),
             "при насыщении нельзя предполагать единственную попытку");
-        TelemetryPacket saturatedErrors = Replace(first with { UptimeMs = 200 }, failed with
-            { AttemptCount = (ulong)uint.MaxValue + 1, ConsecutiveErrors = uint.MaxValue });
-        Require(validator.TryValidate(saturatedErrors, Replace(same, failed with
-            { AttemptCount = (ulong)uint.MaxValue + 3, ConsecutiveErrors = uint.MaxValue, LastAttemptMs = 300 }), out _),
+        TelemetryPacket saturatedErrors = Replace(first with { UptimeMs = 200 }, failed with { AttemptCount = (ulong)uint.MaxValue + 1, ConsecutiveErrors = uint.MaxValue });
+        Require(validator.TryValidate(saturatedErrors, Replace(same, failed with { AttemptCount = (ulong)uint.MaxValue + 3, ConsecutiveErrors = uint.MaxValue, LastAttemptMs = 300 }), out _),
             "серия ошибок тоже насыщается, не переполняясь в ноль");
         Observation neverSucceeded = failed with { LastAttemptMs = 100, LastSuccessMs = null, Values = null, AttemptCount = 1 };
-        Require(validator.TryValidate(Replace(first, neverSucceeded), Replace(same, neverSucceeded with
-            { AttemptCount = (ulong)uint.MaxValue + 2, ConsecutiveErrors = uint.MaxValue, LastAttemptMs = 300 }), out _),
+        Require(validator.TryValidate(Replace(first, neverSucceeded), Replace(same, neverSucceeded with { AttemptCount = (ulong)uint.MaxValue + 2, ConsecutiveErrors = uint.MaxValue, LastAttemptMs = 300 }), out _),
             "большая разность попыток с насыщенной серией ошибок не доказывает успех");
         Require(validator.TryValidate(first, Replace(same with { BootId = new string('c', 32) }, dht with { AttemptCount = 0 }), out _), "новый boot сбрасывает историю");
     }
 
-    private static TelemetryPacket Replace(TelemetryPacket packet, Observation item) => packet with
-    {
+    private static TelemetryPacket Replace(TelemetryPacket packet, Observation item) => packet with {
         Observations = Array.AsReadOnly(packet.Observations.Select(old => old.SourceId == item.SourceId ? item : old).ToArray())
     };
 
-    private static void CheckCapture()
-    {
+    private static void CheckCapture() {
         DirectoryInfo directory = Directory.CreateTempSubdirectory("iotexpert-capture-check-");
         RawCaptureWriter writer = new RawCaptureWriter(64);
-        try
-        {
+        try {
             string path = Path.Combine(directory.FullName, "raw.log");
             byte[] bytes = Encoding.UTF8.GetBytes("boot\r\n{broken}\n{tail");
             writer.Start(path);
@@ -111,19 +109,16 @@ public static class ReceiverStep02Checks
         finally { writer.Stop(); directory.Delete(true); }
     }
 
-    private static string PacketLine(ulong sequence, ulong uptime)
-    {
+    private static string PacketLine(ulong sequence, ulong uptime) {
         JsonObject root = JsonNode.Parse(ReceiverChecks.CreateSyntheticPacket())!.AsObject();
         root["sequence"] = JsonValue.Create(sequence);
         root["uptime_ms"] = JsonValue.Create(uptime);
         return root.ToJsonString();
     }
 
-    private static async Task CheckReplayAsync()
-    {
+    private static async Task CheckReplayAsync() {
         DirectoryInfo directory = Directory.CreateTempSubdirectory("iotexpert-replay-check-");
-        try
-        {
+        try {
             string path = Path.Combine(directory.FullName, "synthetic-timed.log");
             await File.WriteAllTextAsync(path, PacketLine(1, 100) + "\n" + PacketLine(2, 700) + "\n");
             await using TelemetryReceiverService receiver = new TelemetryReceiverService(new ObservationStore());
@@ -158,8 +153,7 @@ public static class ReceiverStep02Checks
         finally { directory.Delete(true); }
     }
 
-    private static async Task CheckReplayBoundaryAsync()
-    {
+    private static async Task CheckReplayBoundaryAsync() {
         TelemetryParser parser = new TelemetryParser();
         Require(parser.TryParse(ReceiverChecks.CreateSyntheticPacket(), out TelemetryPacket? packet, out string error), error);
         ReplayController replay = new ReplayController();
@@ -168,10 +162,8 @@ public static class ReceiverStep02Checks
         replay.TogglePause();
         string before = replay.GetState().Description;
         using CancellationTokenSource cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(3));
-        Task pending = Task.Run(() => replay.WaitForPacket(packet! with
-            { BootId = new string('e', 32), UptimeMs = ulong.MaxValue }, cancellation.Token));
-        try
-        {
+        Task pending = Task.Run(() => replay.WaitForPacket(packet! with { BootId = new string('e', 32), UptimeMs = ulong.MaxValue }, cancellation.Token));
+        try {
             await Task.Delay(80);
             Require(!pending.IsCompleted && replay.GetState().Description == before, "пауза запрещает смену шкалы нового boot");
             replay.TogglePause();
@@ -180,25 +172,21 @@ public static class ReceiverStep02Checks
             Require(replay.GetState().Description.Contains(ulong.MaxValue.ToString(), StringComparison.Ordinal),
                 "первый пакет boot сохраняет точный UInt64 uptime без ожидания");
         }
-        finally
-        {
+        finally {
             cancellation.Cancel();
             try { await pending; } catch (OperationCanceledException) { }
         }
     }
 
-    private static async Task WaitAsync(Func<bool> predicate)
-    {
-        for (int attempt = 0; attempt < 500; attempt++)
-        {
+    private static async Task WaitAsync(Func<bool> predicate) {
+        for (int attempt = 0; attempt < 500; attempt++) {
             if (predicate()) return;
             await Task.Delay(10);
         }
         throw new InvalidOperationException("тайм-аут проверки replay");
     }
 
-    private static void Require(bool condition, string message)
-    {
+    private static void Require(bool condition, string message) {
         if (!condition) throw new InvalidOperationException(message);
     }
 }

@@ -9,12 +9,9 @@ using IotExpertApp.Services.Telemetry;
 
 namespace IotExpertApp.ConsoleUI;
 
-public static class ReceiverChecks
-{
-    public static int Run()
-    {
-        try
-        {
+public static class ReceiverChecks {
+    public static int Run() {
+        try {
             string json = CreateSyntheticPacket();
             TelemetryParser parser = new TelemetryParser();
             Check(parser.TryParse(json, out TelemetryPacket? packet, out string error), error);
@@ -79,21 +76,19 @@ public static class ReceiverChecks
             Check(store.TryApply(first with { Sequence = 0, UptimeMs = 1, BootId = new string('b', 32) }, "synthetic", out _, out _), "новый boot");
             CheckLifecycleAsync(json).GetAwaiter().GetResult();
             ReceiverStep02Checks.Run();
-            Console.WriteLine("проверки приемника пройдены; входы искусственные, оборудование не проверялось");
+            KnowledgeChecks.Run();
+            Console.WriteLine("проверки приемника и технического ядра пройдены; все входы искусственные, оборудование не проверялось");
             return 0;
         }
-        catch (Exception exception)
-        {
+        catch (Exception exception) {
             Console.Error.WriteLine("проверка не пройдена: " + exception.Message);
             return 1;
         }
     }
 
-    private static async Task CheckLifecycleAsync(string json)
-    {
+    private static async Task CheckLifecycleAsync(string json) {
         DirectoryInfo directory = Directory.CreateTempSubdirectory("iotexpert-self-test-");
-        try
-        {
+        try {
             string path = Path.Combine(directory.FullName, "synthetic.log");
             await File.WriteAllTextAsync(path, "{broken}\n" + json + "\n{tail");
             await using TelemetryReceiverService receiver = new TelemetryReceiverService(new ObservationStore());
@@ -117,13 +112,10 @@ public static class ReceiverChecks
         finally { directory.Delete(true); }
     }
 
-    private static async Task<ReceiverState> WaitForFileAsync(TelemetryReceiverService receiver)
-    {
-        for (int attempt = 0; attempt < 500; attempt++)
-        {
+    private static async Task<ReceiverState> WaitForFileAsync(TelemetryReceiverService receiver) {
+        for (int attempt = 0; attempt < 500; attempt++) {
             ReceiverState state = receiver.GetState();
-            if (state.Status is "файл прочитан (быстрый режим)" or "ошибка источника")
-            {
+            if (state.Status is "файл прочитан (быстрый режим)" or "ошибка источника") {
                 // статус EOF появляется перед finally: StopAsync дожидается учета хвоста и закрытия файла
                 await receiver.StopAsync();
                 return receiver.GetState();
@@ -133,8 +125,7 @@ public static class ReceiverChecks
         throw new InvalidOperationException("сервис не завершил чтение за 5 с");
     }
 
-    public static string CreateSyntheticPacket()
-    {
+    public static string CreateSyntheticPacket() {
         JsonArray observations = new JsonArray();
         string[] ids = { "esp32", "oled", "dht11", "light", "ir", "pir", "microsd", "relay_1", "relay_2" };
         string[] types = { "system", "display", "temperature_humidity", "digital_input", "digital_input", "digital_input", "storage_test", "relay_output", "relay_output" };
@@ -142,33 +133,39 @@ public static class ReceiverChecks
             "{\"transfer_ok\":true}", "{\"temperature_c\":24,\"humidity_pct\":50}",
             "{\"digital_level\":1}", "{\"digital_level\":0}", "null", "{\"test_passed\":true,\"duration_ms\":12}",
             "{\"gpio_level\":1,\"pulse_active\":false}", "{\"gpio_level\":1,\"pulse_active\":false}" };
-        for (int index = 0; index < ids.Length; index++)
-        {
+        for (int index = 0; index < ids.Length; index++) {
             bool pir = ids[index] == "pir";
-            JsonObject item = new JsonObject
-            {
-                ["source_id"] = ids[index], ["source_type"] = types[index], ["enabled"] = true,
-                ["status"] = pir ? "unavailable" : "ok", ["last_attempt_ms"] = 100,
-                ["last_success_ms"] = pir ? null : JsonValue.Create(100), ["values"] = JsonNode.Parse(values[index]),
-                ["error_code"] = null, ["error_domain"] = null,
+            JsonObject item = new JsonObject {
+                ["source_id"] = ids[index],
+                ["source_type"] = types[index],
+                ["enabled"] = true,
+                ["status"] = pir ? "unavailable" : "ok",
+                ["last_attempt_ms"] = 100,
+                ["last_success_ms"] = pir ? null : JsonValue.Create(100),
+                ["values"] = JsonNode.Parse(values[index]),
+                ["error_code"] = null,
+                ["error_domain"] = null,
                 ["error_detail"] = pir ? "power_not_verified" : null,
-                ["consecutive_errors"] = pir ? 1 : 0, ["attempt_count"] = 1
+                ["consecutive_errors"] = pir ? 1 : 0,
+                ["attempt_count"] = 1
             };
             if (pir) item["raw_level"] = 0;
             observations.Add(item);
         }
-        return new JsonObject
-        {
-            ["schema_version"] = 1, ["device_id"] = "esp32-001122334455", ["boot_id"] = new string('a', 32),
-            ["sequence"] = JsonValue.Create(ulong.MaxValue), ["uptime_ms"] = 100,
-            ["firmware_version"] = "synthetic-check-only", ["config_version"] = "stand-v1-pir-unverified",
+        return new JsonObject {
+            ["schema_version"] = 1,
+            ["device_id"] = "esp32-001122334455",
+            ["boot_id"] = new string('a', 32),
+            ["sequence"] = JsonValue.Create(ulong.MaxValue),
+            ["uptime_ms"] = 100,
+            ["firmware_version"] = "synthetic-check-only",
+            ["config_version"] = "stand-v1-pir-unverified",
             ["local_diagnostic"] = new JsonObject { ["state"] = "NORMAL", ["rule"] = "R4", ["reason"] = "synthetic" },
             ["observations"] = observations
         }.ToJsonString();
     }
 
-    private static void Check(bool condition, string message)
-    {
+    private static void Check(bool condition, string message) {
         if (!condition) throw new InvalidOperationException(message);
     }
 }

@@ -1,0 +1,181 @@
+{
+  "schema_version": 1,
+  "knowledge_base_id": "synthetic-engine-only",
+  "version": "synthetic-1",
+  "synthetic": true,
+  "facts": [
+    {
+      "id": "operator_ready",
+      "name": "оператор готов к искусственной проверке",
+      "type": "bool",
+      "role": "input",
+      "question": "Готовность для проверки алгоритма?"
+    },
+    {
+      "id": "sample_count",
+      "name": "искусственное число образцов",
+      "type": "integer",
+      "role": "input",
+      "min": 0,
+      "max": 18446744073709551615,
+      "question": "Число искусственных образцов?"
+    },
+    {
+      "id": "ambient",
+      "name": "искусственное числовое значение",
+      "type": "number",
+      "role": "input",
+      "min": -100,
+      "max": 100,
+      "question": "Число для проверки сравнений?"
+    },
+    {
+      "id": "mode",
+      "name": "искусственный режим",
+      "type": "enum",
+      "role": "input",
+      "options": [
+        "demo",
+        "off"
+      ],
+      "question": "Выберите demo или off"
+    },
+    {
+      "id": "alternative",
+      "name": "искусственная альтернативная ветвь",
+      "type": "bool",
+      "role": "input",
+      "question": "Истинна альтернативная ветвь?"
+    },
+    {
+      "id": "gate",
+      "name": "промежуточное доказательство",
+      "type": "bool",
+      "role": "derived"
+    },
+    {
+      "id": "cycle_a",
+      "name": "искусственный цикл а",
+      "type": "bool",
+      "role": "derived"
+    },
+    {
+      "id": "cycle_b",
+      "name": "искусственный цикл б",
+      "type": "bool",
+      "role": "derived"
+    },
+    {
+      "id": "outcome",
+      "name": "цель проверки алгоритма",
+      "type": "enum",
+      "role": "goal",
+      "options": [
+        "accepted",
+        "rejected"
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "id": "SYN-10",
+      "title": "искусственное правило SYN-10",
+      "priority": 20,
+      "condition": {
+        "all": [
+          {
+            "fact_id": "operator_ready",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "fact_id": "sample_count",
+            "op": "gte",
+            "value": 2
+          },
+          {
+            "fact_id": "ambient",
+            "op": "gte",
+            "value": 20
+          },
+          {
+            "any": [
+              {
+                "fact_id": "mode",
+                "op": "eq",
+                "value": "demo"
+              },
+              {
+                "fact_id": "alternative",
+                "op": "eq",
+                "value": true
+              }
+            ]
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "gate",
+          "value": true
+        }
+      ],
+      "explanation": "Синтетическое условие для проверки алгоритма; технические пороги ESP32 не задает",
+      "provenance": "synthetic algorithm fixture; not a device rule"
+    },
+    {
+      "id": "SYN-20",
+      "title": "искусственное правило SYN-20",
+      "priority": 10,
+      "condition": {
+        "fact_id": "gate",
+        "op": "eq",
+        "value": true
+      },
+      "conclusions": [
+        {
+          "fact_id": "outcome",
+          "value": "accepted"
+        }
+      ],
+      "explanation": "Синтетическое условие для проверки алгоритма; технические пороги ESP32 не задает",
+      "provenance": "synthetic algorithm fixture; not a device rule"
+    },
+    {
+      "id": "SYN-30",
+      "title": "искусственное правило SYN-30",
+      "priority": 0,
+      "condition": {
+        "fact_id": "cycle_b",
+        "op": "eq",
+        "value": true
+      },
+      "conclusions": [
+        {
+          "fact_id": "cycle_a",
+          "value": true
+        }
+      ],
+      "explanation": "Синтетическое условие для проверки алгоритма; технические пороги ESP32 не задает",
+      "provenance": "synthetic algorithm fixture; not a device rule"
+    },
+    {
+      "id": "SYN-31",
+      "title": "искусственное правило SYN-31",
+      "priority": 0,
+      "condition": {
+        "fact_id": "cycle_a",
+        "op": "eq",
+        "value": true
+      },
+      "conclusions": [
+        {
+          "fact_id": "cycle_b",
+          "value": true
+        }
+      ],
+      "explanation": "Синтетическое условие для проверки алгоритма; технические пороги ESP32 не задает",
+      "provenance": "synthetic algorithm fixture; not a device rule"
+    }
+  ]
+}

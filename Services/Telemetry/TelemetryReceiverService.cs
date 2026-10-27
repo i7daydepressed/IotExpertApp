@@ -8,8 +8,7 @@ using IotExpertApp.Models.Telemetry;
 
 namespace IotExpertApp.Services.Telemetry;
 
-public sealed class TelemetryReceiverService : IAsyncDisposable
-{
+public sealed class TelemetryReceiverService : IAsyncDisposable {
     private readonly object gate = new object();
     private readonly SemaphoreSlim lifecycle = new SemaphoreSlim(1, 1);
     private readonly ObservationStore store;
@@ -32,10 +31,8 @@ public sealed class TelemetryReceiverService : IAsyncDisposable
     public string[] GetPorts() => SerialPort.GetPortNames();
 
     // под той же блокировкой собираем счетчики и снимок, чтобы GUI видел согласованное состояние
-    public ReceiverState GetState()
-    {
-        lock (gate)
-        {
+    public ReceiverState GetState() {
+        lock (gate) {
             string shown = status;
             if (serialMode && running && Stopwatch.GetElapsedTime(lastPacketTick).TotalSeconds > 10)
                 shown = "нет свежей телеметрии более 10 с";
@@ -50,26 +47,21 @@ public sealed class TelemetryReceiverService : IAsyncDisposable
 
     public Task StartSerialAsync(string port, string? capturePath = null) => StartAsync(port, true, false, capturePath);
     public Task StartFileAsync(string path, bool timed = false) => StartAsync(Path.GetFullPath(path), false, timed, null);
-    public void ToggleReplayPause()
-    {
+    public void ToggleReplayPause() {
         lock (gate) { if (!serialMode && running) replay.TogglePause(); }
     }
-    public async Task StopCaptureAsync()
-    {
+    public async Task StopCaptureAsync() {
         await lifecycle.WaitAsync();
         try { await Task.Run(() => capture.Stop()); }
         finally { lifecycle.Release(); }
     }
 
-    private async Task StartAsync(string source, bool serial, bool timed, string? capturePath)
-    {
+    private async Task StartAsync(string source, bool serial, bool timed, string? capturePath) {
         await lifecycle.WaitAsync();
-        try
-        {
+        try {
             await StopCoreAsync();
             cancellation = new CancellationTokenSource();
-            lock (gate)
-            {
+            lock (gate) {
                 store.Clear();
                 replay.Reset(timed);
                 completed = false;
@@ -92,11 +84,9 @@ public sealed class TelemetryReceiverService : IAsyncDisposable
         finally { lifecycle.Release(); }
     }
 
-    private void Run(string source, bool serial, bool timed, string? capturePath, CancellationToken token, TaskCompletionSource started)
-    {
+    private void Run(string source, bool serial, bool timed, string? capturePath, CancellationToken token, TaskCompletionSource started) {
         TelemetryLineAssembler assembler = new TelemetryLineAssembler();
-        try
-        {
+        try {
             using ITelemetryByteSource input = serial
                 ? new SerialTelemetrySource(source)
                 : new ReplayTelemetrySource(source);
@@ -104,13 +94,11 @@ public sealed class TelemetryReceiverService : IAsyncDisposable
             SetStatus(serial ? "порт открыт, ожидание пакета" : "чтение файла");
             started.TrySetResult();
             byte[] buffer = new byte[4096];
-            while (!token.IsCancellationRequested)
-            {
+            while (!token.IsCancellationRequested) {
                 int count;
                 try { count = input.Read(buffer); }
                 catch (TimeoutException) { continue; }
-                if (count == 0)
-                {
+                if (count == 0) {
                     if (serial) throw new IOException("последовательный поток закрыт");
                     break;
                 }
@@ -118,10 +106,8 @@ public sealed class TelemetryReceiverService : IAsyncDisposable
                 if (serial) capture.Write(buffer, count);
                 Process(assembler, buffer, count, serial, token);
             }
-            if (!serial && !token.IsCancellationRequested)
-            {
-                lock (gate)
-                {
+            if (!serial && !token.IsCancellationRequested) {
+                lock (gate) {
                     status = timed ? "файл воспроизведен" : "файл прочитан (быстрый режим)";
                     completed = true;
                 }
@@ -129,20 +115,16 @@ public sealed class TelemetryReceiverService : IAsyncDisposable
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or
-            ArgumentException or InvalidOperationException or NotSupportedException)
-        {
-            lock (gate)
-            {
+            ArgumentException or InvalidOperationException or NotSupportedException) {
+            lock (gate) {
                 status = "ошибка источника";
                 lastMessage = exception.Message;
             }
         }
-        finally
-        {
+        finally {
             capture.Stop();
             replay.Complete();
-            lock (gate)
-            {
+            lock (gate) {
                 if (assembler.Finish()) tails++;
                 running = false;
                 if (token.IsCancellationRequested && status != "ошибка источника") status = "остановлено";
@@ -152,41 +134,32 @@ public sealed class TelemetryReceiverService : IAsyncDisposable
         }
     }
 
-    private void Process(TelemetryLineAssembler assembler, byte[] buffer, int count, bool serial, CancellationToken token)
-    {
-        foreach (Frame frame in assembler.Feed(buffer, count))
-        {
+    private void Process(TelemetryLineAssembler assembler, byte[] buffer, int count, bool serial, CancellationToken token) {
+        foreach (Frame frame in assembler.Feed(buffer, count)) {
             token.ThrowIfCancellationRequested();
             if (!serial) replay.WaitIfPaused(token);
-            if (frame.Oversized)
-            {
-                lock (gate)
-                {
+            if (frame.Oversized) {
+                lock (gate) {
                     oversized++;
                     if (frame.JsonCandidate) invalid++; else logs++;
                     lastMessage = "строка больше 8192 байт с LF, пропущена";
                 }
                 continue;
             }
-            if (!frame.JsonCandidate)
-            {
+            if (!frame.JsonCandidate) {
                 if (!string.IsNullOrEmpty(frame.Text))
-                    lock (gate)
-                    {
+                    lock (gate) {
                         logs++;
                         lastMessage = frame.Text!.Length > 300 ? frame.Text[..300] : frame.Text;
                     }
                 continue;
             }
-            if (!parser.TryParse(frame.Text!, out TelemetryPacket? packet, out string error))
-            {
+            if (!parser.TryParse(frame.Text!, out TelemetryPacket? packet, out string error)) {
                 lock (gate) { invalid++; lastMessage = error; }
                 continue;
             }
-            lock (gate)
-            {
-                if (!store.CanApply(packet!, out _, out string reason, out bool temporal))
-                {
+            lock (gate) {
+                if (!store.CanApply(packet!, out _, out string reason, out bool temporal)) {
                     if (temporal) temporalRejected++; else rejectedOrder++;
                     lastMessage = reason;
                     continue;
@@ -194,16 +167,13 @@ public sealed class TelemetryReceiverService : IAsyncDisposable
             }
             // ожидание replay не держит блокировку снимка: GUI и Stop остаются доступны
             if (!serial) replay.WaitForPacket(packet!, token);
-            while (true)
-            {
+            while (true) {
                 if (!serial) replay.WaitIfPaused(token);
                 token.ThrowIfCancellationRequested();
-                lock (gate)
-                {
+                lock (gate) {
                     // через ToggleReplayPause берем gate: после принятой паузы новый снимок не применяется
                     if (!serial && replay.GetState().Paused) continue;
-                    if (!store.TryApply(packet!, origin, out ulong lost, out string message))
-                    {
+                    if (!store.TryApply(packet!, origin, out ulong lost, out string message)) {
                         temporalRejected++;
                         lastMessage = message;
                         break;
@@ -222,8 +192,7 @@ public sealed class TelemetryReceiverService : IAsyncDisposable
 
     private void SetStatus(string text) { lock (gate) status = text; }
 
-    public async Task StopAsync()
-    {
+    public async Task StopAsync() {
         await lifecycle.WaitAsync();
         try { await StopCoreAsync(); }
         finally { lifecycle.Release(); }
@@ -231,8 +200,7 @@ public sealed class TelemetryReceiverService : IAsyncDisposable
 
     // сначала просим цикл завершиться, затем ждем using/Dispose источника и только потом допускаем новый запуск
     // у UART короткий ReadTimeout, поэтому пустой поток тоже возвращает управление для проверки отмены
-    private async Task StopCoreAsync()
-    {
+    private async Task StopCoreAsync() {
         cancellation?.Cancel();
         if (worker is not null) await worker;
         cancellation?.Dispose();

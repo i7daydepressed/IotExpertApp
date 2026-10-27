@@ -5,19 +5,16 @@ using IotExpertApp.Models.Telemetry;
 
 namespace IotExpertApp.Services.Telemetry;
 
-public sealed class ObservationProgressValidator
-{
+public sealed class ObservationProgressValidator {
     // сравниваем только два принятых снимка одного запуска, наблюдения сопоставляем по source_id
     // delta показывает число новых попыток, а серия ошибок позволяет понять, был ли между ними успех
     // при насыщении attempt_count точное delta уже неизвестно, поэтому сохраняем лишь проверки без этой разности
-    public bool TryValidate(TelemetryPacket previous, TelemetryPacket next, out string error)
-    {
+    public bool TryValidate(TelemetryPacket previous, TelemetryPacket next, out string error) {
         error = "";
         if (previous.DeviceId != next.DeviceId || previous.BootId != next.BootId) return true;
         if (previous.ConfigVersion != next.ConfigVersion || previous.FirmwareVersion != next.FirmwareVersion)
             return Fail("версия изменилась внутри запуска", out error);
-        foreach (Observation current in next.Observations)
-        {
+        foreach (Observation current in next.Observations) {
             Observation? old = previous.Observations.FirstOrDefault(item => item.SourceId == current.SourceId);
             if (old is null) return Fail("изменился состав источников", out error);
             string reason = Check(old, current);
@@ -26,8 +23,7 @@ public sealed class ObservationProgressValidator
         return true;
     }
 
-    private static string Check(Observation old, Observation current)
-    {
+    private static string Check(Observation old, Observation current) {
         if (old.Enabled != current.Enabled || old.SourceType != current.SourceType) return "изменился профиль источника";
         if (current.AttemptCount < old.AttemptCount) return "уменьшился attempt_count";
         if (Regressed(old.LastAttemptMs, current.LastAttemptMs)) return "откат/исчезновение last_attempt_ms";
@@ -37,8 +33,7 @@ public sealed class ObservationProgressValidator
         // достижение насыщения тоже скрывает число попыток: delta уже только нижняя граница
         if (current.AttemptCount == ulong.MaxValue) return "";
         ulong delta = current.AttemptCount - old.AttemptCount;
-        if (delta == 0)
-        {
+        if (delta == 0) {
             if (old.Status != current.Status || old.LastAttemptMs != current.LastAttemptMs ||
                 old.LastSuccessMs != current.LastSuccessMs || old.ConsecutiveErrors != current.ConsecutiveErrors ||
                 old.ErrorCode != current.ErrorCode || old.ErrorDomain != current.ErrorDomain ||
@@ -49,8 +44,7 @@ public sealed class ObservationProgressValidator
         ulong maximumErrors = Math.Min((ulong)uint.MaxValue,
             (ulong)old.ConsecutiveErrors + Math.Min(delta, (ulong)uint.MaxValue));
         if (current.ConsecutiveErrors > maximumErrors) return "ошибок больше, чем возможных попыток";
-        if (current.ConsecutiveErrors >= delta)
-        {
+        if (current.ConsecutiveErrors >= delta) {
             // вся разность попыток покрыта серией ошибок, нового успеха в этом промежутке быть не могло
             uint expected = (uint)maximumErrors;
             if (current.ConsecutiveErrors != expected) return "неверный прирост последовательных ошибок";
