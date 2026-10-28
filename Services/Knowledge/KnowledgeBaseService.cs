@@ -14,9 +14,11 @@ public sealed class KnowledgeBaseService {
     public KnowledgeBase Parse(byte[] bytes) {
         using JsonDocument document = KnowledgeJson.Parse(bytes);
         JsonElement root = document.RootElement;
-        KnowledgeJson.Shape(root, "БЗ", new[] { "schema_version", "knowledge_base_id", "version", "synthetic", "facts", "rules" });
+        KnowledgeJson.Shape(root, "БЗ", new[] { "schema_version", "knowledge_base_id", "version", "synthetic", "facts", "rules" }, "question_order", "outcomes");
         JsonElement schemaJson = root.GetProperty("schema_version");
-        KnowledgeJson.Require(schemaJson.ValueKind == JsonValueKind.Number && schemaJson.TryGetInt32(out int schema) && schema == 1, "schema_version должна быть 1");
+        KnowledgeJson.Require(schemaJson.ValueKind == JsonValueKind.Number && schemaJson.TryGetInt32(out _), "schema_version должна быть целым числом");
+        int schema = schemaJson.GetInt32();
+        KnowledgeJson.Require(schema is 1 or 2, "поддерживаются schema_version 1 и 2");
         string id = KnowledgeJson.Id(root.GetProperty("knowledge_base_id"), "knowledge_base_id");
         string version = KnowledgeJson.Text(root.GetProperty("version"), "version");
         JsonElement synthetic = root.GetProperty("synthetic");
@@ -31,7 +33,7 @@ public sealed class KnowledgeBaseService {
             KnowledgeJson.Require(!facts.ContainsKey(definition.Id), "повтор признака " + definition.Id);
             facts.Add(definition.Id, definition);
         }
-        KnowledgeJson.Require(facts.Values.Count(fact => fact.Role == FactRole.Goal) == 1, "техническое ядро шага 03 требует ровно один целевой признак");
+        KnowledgeJson.Require(facts.Values.Count(fact => fact.Role == FactRole.Goal) == 1, "БЗ должна содержать ровно один целевой признак");
         HashSet<string> ruleIds = new HashSet<string>(StringComparer.Ordinal);
         ImmutableArray<KnowledgeRule>.Builder rules = ImmutableArray.CreateBuilder<KnowledgeRule>();
         int nodes = 0;
@@ -59,8 +61,58 @@ public sealed class KnowledgeBaseService {
                 condition, conclusions.ToImmutable(), KnowledgeJson.Text(item.GetProperty("explanation"), ruleId + ".explanation"),
                 KnowledgeJson.Text(item.GetProperty("provenance"), ruleId + ".provenance")));
         }
-        return new KnowledgeBase(1, id, version, Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant(),
-            synthetic.GetBoolean(), facts.ToImmutable(), rules.ToImmutable());
+        ImmutableArray<string> questionOrder = facts.Values.Where(fact => fact.Role == FactRole.Input)
+            .Select(fact => fact.Id).OrderBy(value => value, StringComparer.Ordinal).ToImmutableArray();
+        ImmutableDictionary<string, ConsultationOutcome>.Builder outcomes = ImmutableDictionary.CreateBuilder<string, ConsultationOutcome>(StringComparer.Ordinal);
+        if (schema == 1) {
+            KnowledgeJson.Require(!root.TryGetProperty("question_order", out _) && !root.TryGetProperty("outcomes", out _),
+                "question_order/outcomes требуют schema_version 2");
+        }
+        else {
+            ReadConsultationMetadata(root, facts, out questionOrder, outcomes);
+        }
+        return new KnowledgeBase(schema, id, version, Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant(),
+            synthetic.GetBoolean(), facts.ToImmutable(), rules.ToImmutable()) {
+            QuestionOrder = questionOrder,
+            Outcomes = outcomes.ToImmutable()
+        };
+    }
+
+    private static void ReadConsultationMetadata(JsonElement root, ImmutableDictionary<string, FactDefinition>.Builder facts,
+        out ImmutableArray<string> questionOrder, ImmutableDictionary<string, ConsultationOutcome>.Builder outcomes) {
+        KnowledgeJson.Require(root.TryGetProperty("question_order", out JsonElement order)
+            && order.ValueKind == JsonValueKind.Array && order.GetArrayLength() <= 128, "схема 2 требует массив question_order");
+        ImmutableArray<string>.Builder ordered = ImmutableArray.CreateBuilder<string>();
+        foreach (JsonElement item in order.EnumerateArray()) {
+            string factId = KnowledgeJson.Id(item, "question_order");
+            KnowledgeJson.Require(facts.TryGetValue(factId, out FactDefinition? fact) && fact.Role == FactRole.Input,
+                "question_order ссылается не на input: " + factId);
+            KnowledgeJson.Require(!ordered.Contains(factId), "повтор question_order: " + factId);
+            ordered.Add(factId);
+        }
+        KnowledgeJson.Require(ordered.Count == facts.Values.Count(fact => fact.Role == FactRole.Input),
+            "question_order должен перечислить каждый input ровно один раз");
+        questionOrder = ordered.ToImmutable();
+        FactDefinition goal = facts.Values.Single(fact => fact.Role == FactRole.Goal);
+        KnowledgeJson.Require(goal.Type == FactType.Enum, "схема 2 требует enum для единственной цели");
+        KnowledgeJson.Require(root.TryGetProperty("outcomes", out JsonElement catalog)
+            && catalog.ValueKind == JsonValueKind.Array && catalog.GetArrayLength() is > 0 and <= 128, "схема 2 требует непустой outcomes");
+        foreach (JsonElement item in catalog.EnumerateArray()) {
+            KnowledgeJson.Shape(item, "исход", new[] { "value", "kind", "title", "description" });
+            string value = KnowledgeJson.Text(item.GetProperty("value"), "outcome.value");
+            KnowledgeJson.Require(goal.Options.Contains(value, StringComparer.Ordinal) && !outcomes.ContainsKey(value),
+                "повтор исхода или значение вне enum цели: " + value);
+            ConsultationOutcomeKind kind = KnowledgeJson.Text(item.GetProperty("kind"), "outcome.kind") switch {
+                "strategy" => ConsultationOutcomeKind.Strategy,
+                "clarification" => ConsultationOutcomeKind.Clarification,
+                "refusal" => ConsultationOutcomeKind.Refusal,
+                _ => throw new System.IO.InvalidDataException("неизвестный kind исхода")
+            };
+            outcomes.Add(value, new ConsultationOutcome(value, kind,
+                KnowledgeJson.Text(item.GetProperty("title"), "outcome.title"),
+                KnowledgeJson.Text(item.GetProperty("description"), "outcome.description")));
+        }
+        KnowledgeJson.Require(outcomes.Count == goal.Options.Length, "outcomes должен описать все значения enum цели");
     }
 
     private static FactDefinition ReadDefinition(JsonElement item) {

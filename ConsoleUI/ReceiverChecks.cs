@@ -77,7 +77,8 @@ public static class ReceiverChecks {
             CheckLifecycleAsync(json).GetAwaiter().GetResult();
             ReceiverStep02Checks.Run();
             KnowledgeChecks.Run();
-            Console.WriteLine("проверки приемника и технического ядра пройдены; все входы искусственные, оборудование не проверялось");
+            Lr1ConsultationChecks.Run();
+            Console.WriteLine("проверки приемника, ядра и ручной консультации пройдены; оборудование этим self-test не проверялось");
             return 0;
         }
         catch (Exception exception) {

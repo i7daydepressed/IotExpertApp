@@ -1,0 +1,843 @@
+{
+  "source": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5",
+  "mode": "manual scenarios; not physical captures",
+  "cases": [
+    {
+      "id": "T-01",
+      "input": {
+        "schema_version": 1,
+        "facts": [
+          {
+            "fact_id": "V1",
+            "value": true,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V2",
+            "value": "достаточные",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V3",
+            "value": "отсутствует",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V4",
+            "value": "без ограничений",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V5",
+            "value": true,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V6",
+            "value": "да",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V7",
+            "value": true,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V8",
+            "value": "да",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V9",
+            "value": "да",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V10",
+            "value": "да",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V11",
+            "value": "не задан",
+            "origin": "manual/scenario; not a physical capture"
+          }
+        ]
+      },
+      "expected_outcome": "A1",
+      "expected_kind": "strategy",
+      "expected_rules": [
+        "R-09",
+        "R-13"
+      ]
+    },
+    {
+      "id": "T-02",
+      "input": {
+        "schema_version": 1,
+        "facts": [
+          {
+            "fact_id": "V1",
+            "value": true,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V2",
+            "value": "неполные",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V3",
+            "value": null,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V4",
+            "value": null,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V5",
+            "value": null,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V6",
+            "value": null,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V7",
+            "value": null,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V8",
+            "value": null,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V9",
+            "value": null,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V10",
+            "value": null,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V11",
+            "value": "не задан",
+            "origin": "manual/scenario; not a physical capture"
+          }
+        ]
+      },
+      "expected_outcome": "NEED_DATA",
+      "expected_kind": "clarification",
+      "expected_rules": [
+        "R-02"
+      ]
+    },
+    {
+      "id": "T-03",
+      "input": {
+        "schema_version": 1,
+        "facts": [
+          {
+            "fact_id": "V1",
+            "value": true,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V2",
+            "value": "противоречивые",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V3",
+            "value": "подтверждено",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V4",
+            "value": null,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V5",
+            "value": null,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V6",
+            "value": null,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V7",
+            "value": null,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V8",
+            "value": null,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V9",
+            "value": null,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V10",
+            "value": null,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V11",
+            "value": "не задан",
+            "origin": "manual/scenario; not a physical capture"
+          }
+        ]
+      },
+      "expected_outcome": "CHECK_DATA",
+      "expected_kind": "clarification",
+      "expected_rules": [
+        "R-03"
+      ]
+    },
+    {
+      "id": "T-04",
+      "input": {
+        "schema_version": 1,
+        "facts": [
+          {
+            "fact_id": "V1",
+            "value": true,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V2",
+            "value": "достаточные",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V3",
+            "value": "подтверждено",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V4",
+            "value": "только ограниченный режим",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V5",
+            "value": true,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V6",
+            "value": "да",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V7",
+            "value": false,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V8",
+            "value": "неприменимо",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V9",
+            "value": "неприменимо",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V10",
+            "value": "неприменимо",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V11",
+            "value": "не задан",
+            "origin": "manual/scenario; not a physical capture"
+          }
+        ]
+      },
+      "expected_outcome": "A2",
+      "expected_kind": "strategy",
+      "expected_rules": [
+        "R-07",
+        "R-10",
+        "R-14"
+      ]
+    },
+    {
+      "id": "T-05.1",
+      "input": {
+        "schema_version": 1,
+        "facts": [
+          {
+            "fact_id": "V1",
+            "value": true,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V2",
+            "value": "достаточные",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V3",
+            "value": "подтверждено",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V4",
+            "value": "запрещено",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V5",
+            "value": false,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V6",
+            "value": "неприменимо",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V7",
+            "value": true,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V8",
+            "value": "да",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V9",
+            "value": "да",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V10",
+            "value": "да",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V11",
+            "value": "не задан",
+            "origin": "manual/scenario; not a physical capture"
+          }
+        ]
+      },
+      "expected_outcome": "A3",
+      "expected_kind": "strategy",
+      "expected_rules": [
+        "R-04",
+        "R-05",
+        "R-06",
+        "R-11",
+        "R-15"
+      ]
+    },
+    {
+      "id": "T-05.2",
+      "input": {
+        "schema_version": 1,
+        "facts": [
+          {
+            "fact_id": "V1",
+            "value": true,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V2",
+            "value": "достаточные",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V3",
+            "value": "подтверждено",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V4",
+            "value": "запрещено",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V5",
+            "value": false,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V6",
+            "value": "неприменимо",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V7",
+            "value": true,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V8",
+            "value": "да",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V9",
+            "value": "нет",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V10",
+            "value": "да",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V11",
+            "value": "не задан",
+            "origin": "manual/scenario; not a physical capture"
+          }
+        ]
+      },
+      "expected_outcome": "A4",
+      "expected_kind": "strategy",
+      "expected_rules": [
+        "R-04",
+        "R-05",
+        "R-06",
+        "R-08",
+        "R-12"
+      ]
+    },
+    {
+      "id": "T-06",
+      "input": {
+        "schema_version": 1,
+        "facts": [
+          {
+            "fact_id": "V1",
+            "value": false,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V2",
+            "value": "достаточные",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V3",
+            "value": null,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V4",
+            "value": null,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V5",
+            "value": null,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V6",
+            "value": null,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V7",
+            "value": null,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V8",
+            "value": null,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V9",
+            "value": null,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V10",
+            "value": null,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V11",
+            "value": "не задан",
+            "origin": "manual/scenario; not a physical capture"
+          }
+        ]
+      },
+      "expected_outcome": "NO_PROFILE",
+      "expected_kind": "refusal",
+      "expected_rules": [
+        "R-01"
+      ]
+    },
+    {
+      "id": "T-07",
+      "input": {
+        "schema_version": 1,
+        "facts": [
+          {
+            "fact_id": "V1",
+            "value": true,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V2",
+            "value": "достаточные",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V3",
+            "value": "подтверждено",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V4",
+            "value": "без ограничений",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V5",
+            "value": false,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V6",
+            "value": "неприменимо",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V7",
+            "value": false,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V8",
+            "value": "неприменимо",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V9",
+            "value": "неприменимо",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V10",
+            "value": "неприменимо",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V11",
+            "value": "не задан",
+            "origin": "manual/scenario; not a physical capture"
+          }
+        ]
+      },
+      "expected_outcome": "NO_STRATEGY",
+      "expected_kind": "refusal",
+      "expected_rules": [
+        "R-06",
+        "R-07",
+        "R-20"
+      ]
+    },
+    {
+      "id": "T-08.1",
+      "input": {
+        "schema_version": 1,
+        "facts": [
+          {
+            "fact_id": "V1",
+            "value": true,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V2",
+            "value": "достаточные",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V3",
+            "value": "подтверждено",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V4",
+            "value": "только ограниченный режим",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V5",
+            "value": true,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V6",
+            "value": "да",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V7",
+            "value": true,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V8",
+            "value": "да",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V9",
+            "value": "да",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V10",
+            "value": "да",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V11",
+            "value": "сохранить доступную функцию",
+            "origin": "manual/scenario; not a physical capture"
+          }
+        ]
+      },
+      "expected_outcome": "A2",
+      "expected_kind": "strategy",
+      "expected_rules": [
+        "R-10",
+        "R-11",
+        "R-16"
+      ]
+    },
+    {
+      "id": "T-08.2",
+      "input": {
+        "schema_version": 1,
+        "facts": [
+          {
+            "fact_id": "V1",
+            "value": true,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V2",
+            "value": "достаточные",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V3",
+            "value": "подтверждено",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V4",
+            "value": "только ограниченный режим",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V5",
+            "value": true,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V6",
+            "value": "да",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V7",
+            "value": true,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V8",
+            "value": "да",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V9",
+            "value": "да",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V10",
+            "value": "да",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V11",
+            "value": "восстановить штатный режим",
+            "origin": "manual/scenario; not a physical capture"
+          }
+        ]
+      },
+      "expected_outcome": "A3",
+      "expected_kind": "strategy",
+      "expected_rules": [
+        "R-10",
+        "R-11",
+        "R-17"
+      ]
+    },
+    {
+      "id": "T-08.3",
+      "input": {
+        "schema_version": 1,
+        "facts": [
+          {
+            "fact_id": "V1",
+            "value": true,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V2",
+            "value": "достаточные",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V3",
+            "value": "подтверждено",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V4",
+            "value": "только ограниченный режим",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V5",
+            "value": true,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V6",
+            "value": "да",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V7",
+            "value": true,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V8",
+            "value": "да",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V9",
+            "value": "да",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V10",
+            "value": "да",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V11",
+            "value": "не задан",
+            "origin": "manual/scenario; not a physical capture"
+          }
+        ]
+      },
+      "expected_outcome": "NEED_PRIORITY",
+      "expected_kind": "clarification",
+      "expected_rules": [
+        "R-10",
+        "R-11",
+        "R-19"
+      ]
+    },
+    {
+      "id": "T-08.4",
+      "input": {
+        "schema_version": 1,
+        "facts": [
+          {
+            "fact_id": "V1",
+            "value": true,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V2",
+            "value": "достаточные",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V3",
+            "value": "подтверждено",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V4",
+            "value": "только ограниченный режим",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V5",
+            "value": true,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V6",
+            "value": "да",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V7",
+            "value": true,
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V8",
+            "value": "да",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V9",
+            "value": "да",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V10",
+            "value": "да",
+            "origin": "manual/scenario; not a physical capture"
+          },
+          {
+            "fact_id": "V11",
+            "value": "минимизировать вмешательство",
+            "origin": "manual/scenario; not a physical capture"
+          }
+        ]
+      },
+      "expected_outcome": "NEED_INTERVENTION",
+      "expected_kind": "clarification",
+      "expected_rules": [
+        "R-10",
+        "R-11",
+        "R-18"
+      ]
+    }
+  ]
+}

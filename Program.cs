@@ -17,6 +17,7 @@ sealed class Program {
         }
         if (args.Length > 0 && args[0] == "--self-test") return ReceiverChecks.Run();
         if (args.Length > 0 && args[0] == "--infer") return KnowledgeConsole.Run(args);
+        if (args.Length > 0 && args[0] == "--consult") return ConsultationConsole.Run(args);
         if (args.Length > 0 && args[0] == "--console")
             return TelemetryConsole.RunAsync(args).GetAwaiter().GetResult();
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);

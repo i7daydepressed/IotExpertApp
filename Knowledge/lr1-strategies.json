@@ -1,0 +1,1432 @@
+{
+  "schema_version": 2,
+  "knowledge_base_id": "lr1-iot-response",
+  "version": "lr1-port-1",
+  "synthetic": false,
+  "facts": [
+    {
+      "id": "V1",
+      "name": "профиль_определен",
+      "type": "bool",
+      "role": "input",
+      "question": "профиль определен?"
+    },
+    {
+      "id": "V2",
+      "name": "качество_данных",
+      "type": "enum",
+      "role": "input",
+      "question": "качество данных?",
+      "options": [
+        "достаточные",
+        "неполные",
+        "противоречивые"
+      ]
+    },
+    {
+      "id": "V3",
+      "name": "отклонение",
+      "type": "enum",
+      "role": "input",
+      "question": "отклонение?",
+      "options": [
+        "отсутствует",
+        "подтверждено"
+      ]
+    },
+    {
+      "id": "V4",
+      "name": "допустимость_продолжения_работы",
+      "type": "enum",
+      "role": "input",
+      "question": "допустимость продолжения работы?",
+      "options": [
+        "без ограничений",
+        "только ограниченный режим",
+        "запрещено"
+      ]
+    },
+    {
+      "id": "V5",
+      "name": "ограниченный_режим_доступен",
+      "type": "bool",
+      "role": "input",
+      "question": "ограниченный режим доступен?"
+    },
+    {
+      "id": "V6",
+      "name": "ограниченный_режим_разрешен",
+      "type": "enum",
+      "role": "input",
+      "question": "ограниченный режим разрешен?",
+      "options": [
+        "да",
+        "нет",
+        "неприменимо"
+      ]
+    },
+    {
+      "id": "V7",
+      "name": "восстановление_доступно",
+      "type": "bool",
+      "role": "input",
+      "question": "восстановление доступно?"
+    },
+    {
+      "id": "V8",
+      "name": "восстановление_разрешено",
+      "type": "enum",
+      "role": "input",
+      "question": "восстановление разрешено?",
+      "options": [
+        "да",
+        "нет",
+        "неприменимо"
+      ]
+    },
+    {
+      "id": "V9",
+      "name": "попытка_восстановления_доступна",
+      "type": "enum",
+      "role": "input",
+      "question": "попытка восстановления доступна?",
+      "options": [
+        "да",
+        "нет",
+        "неприменимо"
+      ]
+    },
+    {
+      "id": "V10",
+      "name": "проверка_результата_доступна",
+      "type": "enum",
+      "role": "input",
+      "question": "проверка результата доступна?",
+      "options": [
+        "да",
+        "нет",
+        "неприменимо"
+      ]
+    },
+    {
+      "id": "V11",
+      "name": "приоритет_оператора",
+      "type": "enum",
+      "role": "input",
+      "question": "приоритет оператора?",
+      "options": [
+        "сохранить доступную функцию",
+        "восстановить штатный режим",
+        "минимизировать вмешательство",
+        "не задан"
+      ]
+    },
+    {
+      "id": "PF-01",
+      "name": "входные_данные_пригодны",
+      "type": "bool",
+      "role": "derived"
+    },
+    {
+      "id": "PF-02",
+      "name": "штатная_работа_допустима",
+      "type": "bool",
+      "role": "derived"
+    },
+    {
+      "id": "PF-03",
+      "name": "ограниченная_работа_допустима",
+      "type": "bool",
+      "role": "derived"
+    },
+    {
+      "id": "PF-04",
+      "name": "восстановление_допустимо",
+      "type": "bool",
+      "role": "derived"
+    },
+    {
+      "id": "PF-05",
+      "name": "приостановка_требуется",
+      "type": "bool",
+      "role": "derived"
+    },
+    {
+      "id": "PF-06",
+      "name": "альтернативы_равноценны",
+      "type": "bool",
+      "role": "derived"
+    },
+    {
+      "id": "PF-07",
+      "name": "требуется_уточнение",
+      "type": "bool",
+      "role": "derived"
+    },
+    {
+      "id": "PF-08",
+      "name": "применимая_стратегия_отсутствует",
+      "type": "bool",
+      "role": "derived"
+    },
+    {
+      "id": "allow_A1",
+      "name": "A1_применима",
+      "type": "bool",
+      "role": "derived"
+    },
+    {
+      "id": "allow_A2",
+      "name": "A2_применима",
+      "type": "bool",
+      "role": "derived"
+    },
+    {
+      "id": "allow_A3",
+      "name": "A3_применима",
+      "type": "bool",
+      "role": "derived"
+    },
+    {
+      "id": "excluded_A1",
+      "name": "A1_исключена",
+      "type": "bool",
+      "role": "derived"
+    },
+    {
+      "id": "excluded_A2",
+      "name": "A2_исключена",
+      "type": "bool",
+      "role": "derived"
+    },
+    {
+      "id": "excluded_A3",
+      "name": "A3_исключена",
+      "type": "bool",
+      "role": "derived"
+    },
+    {
+      "id": "outcome",
+      "name": "результат_консультации",
+      "type": "enum",
+      "role": "goal",
+      "options": [
+        "A1",
+        "A2",
+        "A3",
+        "A4",
+        "NO_PROFILE",
+        "NEED_DATA",
+        "CHECK_DATA",
+        "NEED_INTERVENTION",
+        "NEED_PRIORITY",
+        "NO_STRATEGY"
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "id": "D-PF-01-T",
+      "title": "Доказана истинность PF-01",
+      "priority": 500,
+      "condition": {
+        "all": [
+          {
+            "fact_id": "V1",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "fact_id": "V2",
+            "op": "eq",
+            "value": "достаточные"
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "PF-01",
+          "value": true
+        }
+      ],
+      "explanation": "Доказана истинность PF-01",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблица 7; техническая формализация определения, не отдельное предметное правило"
+    },
+    {
+      "id": "D-PF-01-F",
+      "title": "Доказана ложность PF-01",
+      "priority": 500,
+      "condition": {
+        "any": [
+          {
+            "fact_id": "V1",
+            "op": "ne",
+            "value": true
+          },
+          {
+            "fact_id": "V2",
+            "op": "ne",
+            "value": "достаточные"
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "PF-01",
+          "value": false
+        }
+      ],
+      "explanation": "Доказана ложность PF-01",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблица 7; отрицание полного условия по де Моргану, неизвестность не является ложью"
+    },
+    {
+      "id": "D-PF-02-T",
+      "title": "Доказана истинность PF-02",
+      "priority": 500,
+      "condition": {
+        "all": [
+          {
+            "fact_id": "PF-01",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "fact_id": "V3",
+            "op": "eq",
+            "value": "отсутствует"
+          },
+          {
+            "fact_id": "V4",
+            "op": "eq",
+            "value": "без ограничений"
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "PF-02",
+          "value": true
+        }
+      ],
+      "explanation": "Доказана истинность PF-02",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблица 7; техническая формализация определения, не отдельное предметное правило"
+    },
+    {
+      "id": "D-PF-02-F",
+      "title": "Доказана ложность PF-02",
+      "priority": 500,
+      "condition": {
+        "any": [
+          {
+            "fact_id": "PF-01",
+            "op": "ne",
+            "value": true
+          },
+          {
+            "fact_id": "V3",
+            "op": "ne",
+            "value": "отсутствует"
+          },
+          {
+            "fact_id": "V4",
+            "op": "ne",
+            "value": "без ограничений"
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "PF-02",
+          "value": false
+        }
+      ],
+      "explanation": "Доказана ложность PF-02",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблица 7; отрицание полного условия по де Моргану, неизвестность не является ложью"
+    },
+    {
+      "id": "D-PF-03-T",
+      "title": "Доказана истинность PF-03",
+      "priority": 500,
+      "condition": {
+        "all": [
+          {
+            "fact_id": "PF-01",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "fact_id": "V3",
+            "op": "eq",
+            "value": "подтверждено"
+          },
+          {
+            "fact_id": "V4",
+            "op": "eq",
+            "value": "только ограниченный режим"
+          },
+          {
+            "fact_id": "V5",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "fact_id": "V6",
+            "op": "eq",
+            "value": "да"
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "PF-03",
+          "value": true
+        }
+      ],
+      "explanation": "Доказана истинность PF-03",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблица 7; техническая формализация определения, не отдельное предметное правило"
+    },
+    {
+      "id": "D-PF-03-F",
+      "title": "Доказана ложность PF-03",
+      "priority": 500,
+      "condition": {
+        "any": [
+          {
+            "fact_id": "PF-01",
+            "op": "ne",
+            "value": true
+          },
+          {
+            "fact_id": "V3",
+            "op": "ne",
+            "value": "подтверждено"
+          },
+          {
+            "fact_id": "V4",
+            "op": "ne",
+            "value": "только ограниченный режим"
+          },
+          {
+            "fact_id": "V5",
+            "op": "ne",
+            "value": true
+          },
+          {
+            "fact_id": "V6",
+            "op": "ne",
+            "value": "да"
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "PF-03",
+          "value": false
+        }
+      ],
+      "explanation": "Доказана ложность PF-03",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблица 7; отрицание полного условия по де Моргану, неизвестность не является ложью"
+    },
+    {
+      "id": "D-PF-04-T",
+      "title": "Доказана истинность PF-04",
+      "priority": 500,
+      "condition": {
+        "all": [
+          {
+            "fact_id": "PF-01",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "fact_id": "V3",
+            "op": "eq",
+            "value": "подтверждено"
+          },
+          {
+            "fact_id": "V7",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "fact_id": "V8",
+            "op": "eq",
+            "value": "да"
+          },
+          {
+            "fact_id": "V9",
+            "op": "eq",
+            "value": "да"
+          },
+          {
+            "fact_id": "V10",
+            "op": "eq",
+            "value": "да"
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "PF-04",
+          "value": true
+        }
+      ],
+      "explanation": "Доказана истинность PF-04",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблица 7; техническая формализация определения, не отдельное предметное правило"
+    },
+    {
+      "id": "D-PF-04-F",
+      "title": "Доказана ложность PF-04",
+      "priority": 500,
+      "condition": {
+        "any": [
+          {
+            "fact_id": "PF-01",
+            "op": "ne",
+            "value": true
+          },
+          {
+            "fact_id": "V3",
+            "op": "ne",
+            "value": "подтверждено"
+          },
+          {
+            "fact_id": "V7",
+            "op": "ne",
+            "value": true
+          },
+          {
+            "fact_id": "V8",
+            "op": "ne",
+            "value": "да"
+          },
+          {
+            "fact_id": "V9",
+            "op": "ne",
+            "value": "да"
+          },
+          {
+            "fact_id": "V10",
+            "op": "ne",
+            "value": "да"
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "PF-04",
+          "value": false
+        }
+      ],
+      "explanation": "Доказана ложность PF-04",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблица 7; отрицание полного условия по де Моргану, неизвестность не является ложью"
+    },
+    {
+      "id": "D-PF-05-T",
+      "title": "Доказана истинность PF-05",
+      "priority": 500,
+      "condition": {
+        "all": [
+          {
+            "fact_id": "PF-01",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "fact_id": "V3",
+            "op": "eq",
+            "value": "подтверждено"
+          },
+          {
+            "any": [
+              {
+                "fact_id": "V4",
+                "op": "eq",
+                "value": "запрещено"
+              },
+              {
+                "all": [
+                  {
+                    "fact_id": "V4",
+                    "op": "eq",
+                    "value": "только ограниченный режим"
+                  },
+                  {
+                    "fact_id": "PF-03",
+                    "op": "eq",
+                    "value": false
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "fact_id": "PF-04",
+            "op": "eq",
+            "value": false
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "PF-05",
+          "value": true
+        }
+      ],
+      "explanation": "Доказана истинность PF-05",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблица 7; техническая формализация определения, не отдельное предметное правило"
+    },
+    {
+      "id": "D-PF-05-F",
+      "title": "Доказана ложность PF-05",
+      "priority": 500,
+      "condition": {
+        "any": [
+          {
+            "fact_id": "PF-01",
+            "op": "ne",
+            "value": true
+          },
+          {
+            "fact_id": "V3",
+            "op": "ne",
+            "value": "подтверждено"
+          },
+          {
+            "all": [
+              {
+                "fact_id": "V4",
+                "op": "ne",
+                "value": "запрещено"
+              },
+              {
+                "any": [
+                  {
+                    "fact_id": "V4",
+                    "op": "ne",
+                    "value": "только ограниченный режим"
+                  },
+                  {
+                    "fact_id": "PF-03",
+                    "op": "ne",
+                    "value": false
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "fact_id": "PF-04",
+            "op": "ne",
+            "value": false
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "PF-05",
+          "value": false
+        }
+      ],
+      "explanation": "Доказана ложность PF-05",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблица 7; отрицание полного условия по де Моргану, неизвестность не является ложью"
+    },
+    {
+      "id": "D-PF-06-T",
+      "title": "Доказана истинность PF-06",
+      "priority": 500,
+      "condition": {
+        "all": [
+          {
+            "fact_id": "PF-03",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "fact_id": "PF-04",
+            "op": "eq",
+            "value": true
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "PF-06",
+          "value": true
+        }
+      ],
+      "explanation": "Доказана истинность PF-06",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблица 7; техническая формализация определения, не отдельное предметное правило"
+    },
+    {
+      "id": "D-PF-06-F",
+      "title": "Доказана ложность PF-06",
+      "priority": 500,
+      "condition": {
+        "any": [
+          {
+            "fact_id": "PF-03",
+            "op": "ne",
+            "value": true
+          },
+          {
+            "fact_id": "PF-04",
+            "op": "ne",
+            "value": true
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "PF-06",
+          "value": false
+        }
+      ],
+      "explanation": "Доказана ложность PF-06",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблица 7; отрицание полного условия по де Моргану, неизвестность не является ложью"
+    },
+    {
+      "id": "D-PF-08-T",
+      "title": "Доказана истинность PF-08",
+      "priority": 500,
+      "condition": {
+        "all": [
+          {
+            "fact_id": "PF-01",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "fact_id": "PF-02",
+            "op": "eq",
+            "value": false
+          },
+          {
+            "fact_id": "PF-03",
+            "op": "eq",
+            "value": false
+          },
+          {
+            "fact_id": "PF-04",
+            "op": "eq",
+            "value": false
+          },
+          {
+            "fact_id": "PF-05",
+            "op": "eq",
+            "value": false
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "PF-08",
+          "value": true
+        }
+      ],
+      "explanation": "Доказана истинность PF-08",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблица 7; техническая формализация определения, не отдельное предметное правило"
+    },
+    {
+      "id": "D-PF-08-F",
+      "title": "Доказана ложность PF-08",
+      "priority": 500,
+      "condition": {
+        "any": [
+          {
+            "fact_id": "PF-01",
+            "op": "ne",
+            "value": true
+          },
+          {
+            "fact_id": "PF-02",
+            "op": "ne",
+            "value": false
+          },
+          {
+            "fact_id": "PF-03",
+            "op": "ne",
+            "value": false
+          },
+          {
+            "fact_id": "PF-04",
+            "op": "ne",
+            "value": false
+          },
+          {
+            "fact_id": "PF-05",
+            "op": "ne",
+            "value": false
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "PF-08",
+          "value": false
+        }
+      ],
+      "explanation": "Доказана ложность PF-08",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблица 7; отрицание полного условия по де Моргану, неизвестность не является ложью"
+    },
+    {
+      "id": "D-PF-07",
+      "title": "Известная причина запроса уточнения",
+      "priority": 500,
+      "condition": {
+        "any": [
+          {
+            "fact_id": "V1",
+            "op": "eq",
+            "value": false
+          },
+          {
+            "fact_id": "V2",
+            "op": "eq",
+            "value": "неполные"
+          },
+          {
+            "fact_id": "V2",
+            "op": "eq",
+            "value": "противоречивые"
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "PF-07",
+          "value": true
+        }
+      ],
+      "explanation": "Известная причина запроса уточнения",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблица 7; неизвестные необходимые входы отдельно отражает статус InsufficientData"
+    },
+    {
+      "id": "R-01",
+      "title": "Профиль не определен: отказ",
+      "priority": 300,
+      "condition": {
+        "fact_id": "V1",
+        "op": "eq",
+        "value": false
+      },
+      "conclusions": [
+        {
+          "fact_id": "outcome",
+          "value": "NO_PROFILE"
+        }
+      ],
+      "explanation": "Профиль не определен: отказ",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблица 9; K-01/K-08/K-13; T-06"
+    },
+    {
+      "id": "R-02",
+      "title": "Недостаточная полнота исходных данных",
+      "priority": 300,
+      "condition": {
+        "all": [
+          {
+            "fact_id": "V1",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "fact_id": "V2",
+            "op": "eq",
+            "value": "неполные"
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "outcome",
+          "value": "NEED_DATA"
+        }
+      ],
+      "explanation": "Недостаточная полнота исходных данных",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблица 9; K-08; T-02; V1=true явно передает прекращение после R-01"
+    },
+    {
+      "id": "R-03",
+      "title": "Противоречивые исходные данные",
+      "priority": 300,
+      "condition": {
+        "all": [
+          {
+            "fact_id": "V1",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "fact_id": "V2",
+            "op": "eq",
+            "value": "противоречивые"
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "outcome",
+          "value": "CHECK_DATA"
+        }
+      ],
+      "explanation": "Противоречивые исходные данные",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблица 9; K-08; T-03; V1=true явно передает прекращение после R-01"
+    },
+    {
+      "id": "R-04",
+      "title": "Запрет продолжения исключает A1",
+      "priority": 400,
+      "condition": {
+        "fact_id": "V4",
+        "op": "eq",
+        "value": "запрещено"
+      },
+      "conclusions": [
+        {
+          "fact_id": "excluded_A1",
+          "value": true
+        }
+      ],
+      "explanation": "Запрет продолжения исключает A1",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблица 9; K-09/K-12/K-13; T-05.1/T-05.2"
+    },
+    {
+      "id": "R-05",
+      "title": "Запрет продолжения исключает A2",
+      "priority": 400,
+      "condition": {
+        "fact_id": "V4",
+        "op": "eq",
+        "value": "запрещено"
+      },
+      "conclusions": [
+        {
+          "fact_id": "excluded_A2",
+          "value": true
+        }
+      ],
+      "explanation": "Запрет продолжения исключает A2",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблица 9; K-10/K-12/K-13; T-05.1/T-05.2"
+    },
+    {
+      "id": "R-06",
+      "title": "Недоступный или запрещенный ограниченный режим исключает A2",
+      "priority": 400,
+      "condition": {
+        "any": [
+          {
+            "fact_id": "V5",
+            "op": "eq",
+            "value": false
+          },
+          {
+            "fact_id": "V6",
+            "op": "eq",
+            "value": "нет"
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "excluded_A2",
+          "value": true
+        }
+      ],
+      "explanation": "Недоступный или запрещенный ограниченный режим исключает A2",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблица 9; K-10/K-13; T-05.1/T-05.2/T-07"
+    },
+    {
+      "id": "R-07",
+      "title": "Недоступное или запрещенное восстановление исключает A3",
+      "priority": 400,
+      "condition": {
+        "any": [
+          {
+            "fact_id": "V7",
+            "op": "eq",
+            "value": false
+          },
+          {
+            "fact_id": "V8",
+            "op": "eq",
+            "value": "нет"
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "excluded_A3",
+          "value": true
+        }
+      ],
+      "explanation": "Недоступное или запрещенное восстановление исключает A3",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблица 9; K-11/K-13; T-04/T-07"
+    },
+    {
+      "id": "R-08",
+      "title": "Нет попытки или проверки: A3 исключена",
+      "priority": 400,
+      "condition": {
+        "any": [
+          {
+            "fact_id": "V9",
+            "op": "eq",
+            "value": "нет"
+          },
+          {
+            "fact_id": "V10",
+            "op": "eq",
+            "value": "нет"
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "excluded_A3",
+          "value": true
+        }
+      ],
+      "explanation": "Нет попытки или проверки: A3 исключена",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблица 9; K-11; T-05.2"
+    },
+    {
+      "id": "R-09",
+      "title": "A1 применима",
+      "priority": 200,
+      "condition": {
+        "fact_id": "PF-02",
+        "op": "eq",
+        "value": true
+      },
+      "conclusions": [
+        {
+          "fact_id": "allow_A1",
+          "value": true
+        }
+      ],
+      "explanation": "A1 применима",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблица 10; K-09; T-01"
+    },
+    {
+      "id": "D-A1-F",
+      "title": "A1 доказанно неприменима",
+      "priority": 500,
+      "condition": {
+        "fact_id": "PF-02",
+        "op": "eq",
+        "value": false
+      },
+      "conclusions": [
+        {
+          "fact_id": "allow_A1",
+          "value": false
+        }
+      ],
+      "explanation": "A1 доказанно неприменима",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблицы 7/10; явное дополнение применимости для проверки единственности"
+    },
+    {
+      "id": "R-10",
+      "title": "A2 применима",
+      "priority": 200,
+      "condition": {
+        "fact_id": "PF-03",
+        "op": "eq",
+        "value": true
+      },
+      "conclusions": [
+        {
+          "fact_id": "allow_A2",
+          "value": true
+        }
+      ],
+      "explanation": "A2 применима",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблица 10; K-10; T-04/T-08.1–T-08.4"
+    },
+    {
+      "id": "D-A2-F",
+      "title": "A2 доказанно неприменима",
+      "priority": 500,
+      "condition": {
+        "fact_id": "PF-03",
+        "op": "eq",
+        "value": false
+      },
+      "conclusions": [
+        {
+          "fact_id": "allow_A2",
+          "value": false
+        }
+      ],
+      "explanation": "A2 доказанно неприменима",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблицы 7/10; явное дополнение применимости для проверки единственности"
+    },
+    {
+      "id": "R-11",
+      "title": "A3 применима",
+      "priority": 200,
+      "condition": {
+        "fact_id": "PF-04",
+        "op": "eq",
+        "value": true
+      },
+      "conclusions": [
+        {
+          "fact_id": "allow_A3",
+          "value": true
+        }
+      ],
+      "explanation": "A3 применима",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблица 10; K-11; T-05.1/T-08.1–T-08.4"
+    },
+    {
+      "id": "D-A3-F",
+      "title": "A3 доказанно неприменима",
+      "priority": 500,
+      "condition": {
+        "fact_id": "PF-04",
+        "op": "eq",
+        "value": false
+      },
+      "conclusions": [
+        {
+          "fact_id": "allow_A3",
+          "value": false
+        }
+      ],
+      "explanation": "A3 доказанно неприменима",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблицы 7/10; явное дополнение применимости для проверки единственности"
+    },
+    {
+      "id": "R-12",
+      "title": "Требуется приостановка с передачей на обслуживание",
+      "priority": 400,
+      "condition": {
+        "fact_id": "PF-05",
+        "op": "eq",
+        "value": true
+      },
+      "conclusions": [
+        {
+          "fact_id": "outcome",
+          "value": "A4"
+        }
+      ],
+      "explanation": "Требуется приостановка с передачей на обслуживание",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблица 10; K-12/K-13; T-05.2"
+    },
+    {
+      "id": "R-13",
+      "title": "A1 является единственной применимой альтернативой",
+      "priority": 100,
+      "condition": {
+        "all": [
+          {
+            "fact_id": "PF-01",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "fact_id": "allow_A1",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "fact_id": "allow_A2",
+            "op": "eq",
+            "value": false
+          },
+          {
+            "fact_id": "allow_A3",
+            "op": "eq",
+            "value": false
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "outcome",
+          "value": "A1"
+        }
+      ],
+      "explanation": "A1 является единственной применимой альтернативой",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблица 10; K-09; T-01; завершенная явная оценка всех альтернатив"
+    },
+    {
+      "id": "R-14",
+      "title": "A2 является единственной применимой альтернативой",
+      "priority": 100,
+      "condition": {
+        "all": [
+          {
+            "fact_id": "PF-01",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "fact_id": "allow_A1",
+            "op": "eq",
+            "value": false
+          },
+          {
+            "fact_id": "allow_A2",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "fact_id": "allow_A3",
+            "op": "eq",
+            "value": false
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "outcome",
+          "value": "A2"
+        }
+      ],
+      "explanation": "A2 является единственной применимой альтернативой",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблица 10; K-10; T-04; завершенная явная оценка всех альтернатив"
+    },
+    {
+      "id": "R-15",
+      "title": "A3 является единственной применимой альтернативой",
+      "priority": 100,
+      "condition": {
+        "all": [
+          {
+            "fact_id": "PF-01",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "fact_id": "allow_A1",
+            "op": "eq",
+            "value": false
+          },
+          {
+            "fact_id": "allow_A2",
+            "op": "eq",
+            "value": false
+          },
+          {
+            "fact_id": "allow_A3",
+            "op": "eq",
+            "value": true
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "outcome",
+          "value": "A3"
+        }
+      ],
+      "explanation": "A3 является единственной применимой альтернативой",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблица 10; K-11; T-05.1; завершенная явная оценка всех альтернатив"
+    },
+    {
+      "id": "R-16",
+      "title": "Выбор или уточнение при двух допустимых вариантах",
+      "priority": 100,
+      "condition": {
+        "all": [
+          {
+            "fact_id": "PF-06",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "fact_id": "V11",
+            "op": "eq",
+            "value": "сохранить доступную функцию"
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "outcome",
+          "value": "A2"
+        }
+      ],
+      "explanation": "Выбор или уточнение при двух допустимых вариантах",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблица 11; K-10/K-13; T-08.1"
+    },
+    {
+      "id": "R-17",
+      "title": "Выбор или уточнение при двух допустимых вариантах",
+      "priority": 100,
+      "condition": {
+        "all": [
+          {
+            "fact_id": "PF-06",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "fact_id": "V11",
+            "op": "eq",
+            "value": "восстановить штатный режим"
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "outcome",
+          "value": "A3"
+        }
+      ],
+      "explanation": "Выбор или уточнение при двух допустимых вариантах",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблица 11; K-11/K-13; T-08.2"
+    },
+    {
+      "id": "R-18",
+      "title": "Выбор или уточнение при двух допустимых вариантах",
+      "priority": 100,
+      "condition": {
+        "all": [
+          {
+            "fact_id": "PF-06",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "fact_id": "V11",
+            "op": "eq",
+            "value": "минимизировать вмешательство"
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "outcome",
+          "value": "NEED_INTERVENTION"
+        }
+      ],
+      "explanation": "Выбор или уточнение при двух допустимых вариантах",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблица 11; K-08/K-13; T-08.4"
+    },
+    {
+      "id": "R-19",
+      "title": "Выбор или уточнение при двух допустимых вариантах",
+      "priority": 100,
+      "condition": {
+        "all": [
+          {
+            "fact_id": "PF-06",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "fact_id": "V11",
+            "op": "eq",
+            "value": "не задан"
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "outcome",
+          "value": "NEED_PRIORITY"
+        }
+      ],
+      "explanation": "Выбор или уточнение при двух допустимых вариантах",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблица 11; K-08/K-13; T-08.3"
+    },
+    {
+      "id": "R-20",
+      "title": "Нет применимой стратегии: отказ",
+      "priority": 100,
+      "condition": {
+        "fact_id": "PF-08",
+        "op": "eq",
+        "value": true
+      },
+      "conclusions": [
+        {
+          "fact_id": "outcome",
+          "value": "NO_STRATEGY"
+        }
+      ],
+      "explanation": "Нет применимой стратегии: отказ",
+      "provenance": "ЛР1, редакция 01.10.2026, Drive 1NAHN3Ih8PdHretuNZZ-cSCnOF1P5utR5; таблица 11; K-08/K-12/K-13; T-07"
+    }
+  ],
+  "question_order": [
+    "V1",
+    "V2",
+    "V3",
+    "V4",
+    "V5",
+    "V6",
+    "V7",
+    "V8",
+    "V9",
+    "V10",
+    "V11"
+  ],
+  "outcomes": [
+    {
+      "value": "A1",
+      "kind": "strategy",
+      "title": "Штатная работа с наблюдением",
+      "description": "Продолжить штатную функцию с наблюдением в пределах заданного профиля"
+    },
+    {
+      "value": "A2",
+      "kind": "strategy",
+      "title": "Ограниченная работа с отложенным обслуживанием",
+      "description": "Сохранить разрешенную профилем часть функций и передать случай на плановое обслуживание"
+    },
+    {
+      "value": "A3",
+      "kind": "strategy",
+      "title": "Восстановление с проверкой результата",
+      "description": "Выполнить только разрешенную профилем процедуру, затем проверить результат новым наблюдением"
+    },
+    {
+      "value": "A4",
+      "kind": "strategy",
+      "title": "Приостановка функции с передачей на обслуживание",
+      "description": "Приостановить функцию способом, заданным профилем, и передать случай специалисту"
+    },
+    {
+      "value": "NO_PROFILE",
+      "kind": "refusal",
+      "title": "Профиль устройства не определен",
+      "description": "Обоснованная рекомендация требует определенного профиля устройства"
+    },
+    {
+      "value": "NEED_DATA",
+      "kind": "clarification",
+      "title": "Нужны недостающие данные",
+      "description": "Уточнить полноту диагностического заключения и профиля"
+    },
+    {
+      "value": "CHECK_DATA",
+      "kind": "clarification",
+      "title": "Нужно проверить исходные данные",
+      "description": "Противоречивые исходные сведения не разрешают выбирать стратегию"
+    },
+    {
+      "value": "NEED_INTERVENTION",
+      "kind": "clarification",
+      "title": "Нужно уточнить допустимое вмешательство",
+      "description": "При двух допустимых вариантах предпочтение минимального вмешательства требует дополнительного решения оператора"
+    },
+    {
+      "value": "NEED_PRIORITY",
+      "kind": "clarification",
+      "title": "Нужно выбрать приоритет оператора",
+      "description": "Ограниченная работа и восстановление допустимы одновременно; предпочтение пока не задано"
+    },
+    {
+      "value": "NO_STRATEGY",
+      "kind": "refusal",
+      "title": "Применимая стратегия отсутствует",
+      "description": "По известным условиям ни одна из альтернатив A1–A4 не обоснована"
+    }
+  ]
+}

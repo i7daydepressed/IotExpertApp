@@ -106,7 +106,7 @@ public static class KnowledgeChecks {
         Invalid(() => new KnowledgeBaseService().Parse(Encoding.UTF8.GetBytes("{\"schema_version\":1,\"schema_version\":1}")), "повтор ключа");
         Invalid(() => new KnowledgeBaseService().Parse(new byte[] { 0xFF }), "невалидный UTF-8");
         Invalid(() => new KnowledgeBaseService().Parse(new byte[KnowledgeJson.MaximumBytes + 1]), "лимит файла");
-        InvalidKnowledge(source, node => node["schema_version"] = 2, "версия схемы");
+        InvalidKnowledge(source, node => node["schema_version"] = 999, "неподдерживаемая версия схемы");
         InvalidKnowledge(source, node => node["unknown"] = true, "неизвестное поле");
         InvalidKnowledge(source, node => node["rules"]![1]!["id"] = "SYN-10", "повтор ID");
         InvalidKnowledge(source, node => node["rules"]![0]!["condition"] = Compare("absent", true), "битая ссылка");

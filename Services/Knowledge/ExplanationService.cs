@@ -16,12 +16,24 @@ public sealed class ExplanationService {
         output.AppendLine(knowledge.Synthetic ? "ИСКУССТВЕННАЯ БЗ: проверка алгоритма, не диагностика ESP32" : "Внешняя база знаний");
         output.AppendLine($"БЗ: {knowledge.Id}, версия {knowledge.Version}, SHA256 {knowledge.Sha256}");
         output.AppendLine("Статус: " + (result.Status switch {
-            InferenceStatus.Success => "цель доказана",
+            InferenceStatus.Success => knowledge.Outcomes.Count > 0 ? "исход консультации доказан" : "цель доказана",
             InferenceStatus.InsufficientData => "недостаточно данных",
             InferenceStatus.NoMatch => "подходящее решение не найдено",
             InferenceStatus.Conflict => "конфликт, итог не подтвержден",
             _ => "лимит вывода или анализа, итог не подтвержден"
         }));
+        if (result.Status == InferenceStatus.Success) {
+            string goalId = knowledge.Facts.Values.Single(fact => fact.Role == FactRole.Goal).Id;
+            if (knowledge.Outcomes.TryGetValue(result.Facts[goalId].Value.Canonical, out ConsultationOutcome? outcome)) {
+                string label = outcome.Kind switch {
+                    ConsultationOutcomeKind.Strategy => "Рекомендация",
+                    ConsultationOutcomeKind.Clarification => "Требуется уточнение",
+                    _ => "Отказ от рекомендации"
+                };
+                output.AppendLine(label + ": " + outcome.Value + " — " + outcome.Title);
+                output.AppendLine(outcome.Description);
+            }
+        }
         foreach (InferenceStep step in result.Steps) {
             KnowledgeRule rule = knowledge.Rules.Single(item => item.Id == step.RuleId);
             output.AppendLine($"Шаг {step.Number}: {rule.Id}, priority={rule.Priority}, повестка=[{string.Join(",", step.Agenda)}]");

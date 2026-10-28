@@ -6,6 +6,8 @@ public enum FactType { Boolean, Enum, Integer, Number }
 public enum FactRole { Input, Derived, Goal }
 public enum TruthValue { Unknown, False, True }
 public enum InferenceStatus { Success, InsufficientData, NoMatch, Conflict, StepLimit }
+public enum ConsultationOutcomeKind { Strategy, Clarification, Refusal }
+public sealed record ConsultationOutcome(string Value, ConsultationOutcomeKind Kind, string Title, string Description);
 
 // значения хранятся в каноническом виде, числа сравниваются как decimal без double
 public sealed record KnowledgeValue(FactType Type, string Canonical);
@@ -23,7 +25,11 @@ public sealed record KnowledgeRule(string Id, string Title, int Priority, Condit
 
 // коллекции неизменяемы, поэтому последующая загрузка файла не меняет прежний снимок БЗ
 public sealed record KnowledgeBase(int SchemaVersion, string Id, string Version, string Sha256,
-    bool Synthetic, ImmutableDictionary<string, FactDefinition> Facts, ImmutableArray<KnowledgeRule> Rules);
+    bool Synthetic, ImmutableDictionary<string, FactDefinition> Facts, ImmutableArray<KnowledgeRule> Rules) {
+    public ImmutableArray<string> QuestionOrder { get; init; } = ImmutableArray<string>.Empty;
+    public ImmutableDictionary<string, ConsultationOutcome> Outcomes { get; init; }
+        = ImmutableDictionary<string, ConsultationOutcome>.Empty;
+}
 
 public sealed record InputFact(string FactId, KnowledgeValue? Value, string Origin);
 public sealed record Evaluation(TruthValue State, Condition Condition, KnowledgeValue? Actual,
