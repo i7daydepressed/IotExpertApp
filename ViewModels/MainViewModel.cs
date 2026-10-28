@@ -18,6 +18,8 @@ public partial class MainViewModel : ViewModelBase {
     private ReceivedSnapshot? shownSnapshot;
     private string? shownReceiverMessage;
 
+    public ConsultationViewModel Consultation { get; } = new ConsultationViewModel();
+
     public ObservableCollection<string> Ports { get; } = new ObservableCollection<string>();
     public ObservableCollection<ObservationRow> Observations { get; } = new ObservableCollection<ObservationRow>();
     [ObservableProperty] private string? selectedPort;
@@ -56,6 +58,7 @@ public partial class MainViewModel : ViewModelBase {
     private async Task ConnectAsync() {
         if (string.IsNullOrWhiteSpace(SelectedPort)) { Message = "выбери последовательный порт"; return; }
         await receiver.StartSerialAsync(SelectedPort, CapturePath);
+        ShowReceiverMessage();
     }
 
     [RelayCommand]
@@ -63,6 +66,7 @@ public partial class MainViewModel : ViewModelBase {
         try {
             if (!File.Exists(ReplayPath)) { Message = "файл не найден"; return; }
             await receiver.StartFileAsync(ReplayPath, TimedReplay);
+            ShowReceiverMessage();
         }
         catch (Exception exception) { Message = exception.Message; }
     }
@@ -75,6 +79,13 @@ public partial class MainViewModel : ViewModelBase {
 
     [RelayCommand]
     private async Task StopAsync() => await receiver.StopAsync();
+
+    // завершившаяся команда обновляет сообщение даже при прежнем пустом LastMessage
+    // так локальная ошибка файла не остается после успешного запуска другого источника
+    private void ShowReceiverMessage() {
+        shownReceiverMessage = receiver.GetState().LastMessage;
+        Message = shownReceiverMessage;
+    }
 
     private void Refresh() {
         ReceiverState state = receiver.GetState();

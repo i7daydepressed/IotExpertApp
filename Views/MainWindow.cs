@@ -12,7 +12,7 @@ namespace IotExpertApp.Views;
 
 public class MainWindow : Window {
     public MainWindow() {
-        Title = "IotExpertApp — монитор стенда";
+        Title = "IotExpertApp — монитор и консультация";
         Width = 1100;
         Height = 800;
         MinWidth = 760;
@@ -23,30 +23,32 @@ public class MainWindow : Window {
         Content = CreateLayout();
     }
 
-    private static Grid CreateLayout() {
-        Grid layout = new Grid {
-            RowDefinitions = new RowDefinitions("Auto,Auto,*,Auto"),
+    private static Control CreateLayout() {
+        ConsultationView consultation = new ConsultationView();
+        BindProperty(consultation, DataContextProperty, nameof(MainViewModel.Consultation));
+        return new TabControl {
             Margin = new Thickness(16),
-            RowSpacing = 12
+            ItemsSource = new TabItem[] {
+                new TabItem { Header = "Монитор", Content = CreateMonitorPanel() },
+                new TabItem { Header = "Консультация (ручная)", Content = consultation }
+            }
         };
-        layout.Children.Add(CreateControlsPanel());
-        StackPanel state = CreateStatePanel();
-        Grid.SetRow(state, 1);
-        layout.Children.Add(state);
-        ScrollViewer observations = CreateObservationsPanel();
-        Grid.SetRow(observations, 2);
-        layout.Children.Add(observations);
-        TextBlock message = CreateBoundText(nameof(MainViewModel.Message));
-        message.MaxHeight = 90;
-        Grid.SetRow(message, 3);
-        layout.Children.Add(message);
-        return layout;
+    }
+
+    private static ScrollViewer CreateMonitorPanel() {
+        // вся страница прокручивается вместе: верхние поля не отнимают высоту у карточек
+        StackPanel panel = new StackPanel { Spacing = 12, Margin = new Thickness(0, 8, 0, 0) };
+        panel.Children.Add(CreateControlsPanel());
+        panel.Children.Add(CreateStatePanel());
+        panel.Children.Add(CreateBoundText(nameof(MainViewModel.Message)));
+        panel.Children.Add(CreateObservationsPanel());
+        return new ScrollViewer { Content = panel };
     }
 
     private static StackPanel CreateControlsPanel() {
         StackPanel panel = new StackPanel { Spacing = 8 };
         panel.Children.Add(new TextBlock {
-            Text = "Стенд ESP32 · первый этап v0.1.0",
+            Text = "Стенд ESP32 · монитор телеметрии",
             FontSize = 23
         });
         panel.Children.Add(CreatePortControls());
@@ -108,12 +110,12 @@ public class MainWindow : Window {
         return panel;
     }
 
-    private static ScrollViewer CreateObservationsPanel() {
+    private static ItemsControl CreateObservationsPanel() {
         ItemsControl items = new ItemsControl {
             ItemTemplate = new FuncDataTemplate<ObservationRow>((row, _) => CreateObservationCard(row))
         };
         BindProperty(items, ItemsControl.ItemsSourceProperty, nameof(MainViewModel.Observations));
-        return new ScrollViewer { Content = items };
+        return items;
     }
 
     private static Control CreateObservationCard(ObservationRow? observation) {

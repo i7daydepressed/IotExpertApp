@@ -78,7 +78,8 @@ public static class ReceiverChecks {
             ReceiverStep02Checks.Run();
             KnowledgeChecks.Run();
             Lr1ConsultationChecks.Run();
-            Console.WriteLine("проверки приемника, ядра и ручной консультации пройдены; оборудование этим self-test не проверялось");
+            ConsultationPresentationChecks.Run();
+            Console.WriteLine("проверки приемника, ядра, ручной консультации и ее представления пройдены; оборудование и нативный GUI этим self-test не проверялись");
             return 0;
         }
         catch (Exception exception) {
