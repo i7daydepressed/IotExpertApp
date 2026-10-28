@@ -26,11 +26,14 @@ public class MainWindow : Window {
     private static Control CreateLayout() {
         ConsultationView consultation = new ConsultationView();
         BindProperty(consultation, DataContextProperty, nameof(MainViewModel.Consultation));
+        KnowledgeEditorView editor = new KnowledgeEditorView();
+        BindProperty(editor, DataContextProperty, nameof(MainViewModel.KnowledgeEditor));
         return new TabControl {
             Margin = new Thickness(16),
             ItemsSource = new TabItem[] {
                 new TabItem { Header = "Монитор", Content = CreateMonitorPanel() },
-                new TabItem { Header = "Консультация (ручная)", Content = consultation }
+                new TabItem { Header = "Консультация (ручная)", Content = consultation },
+                new TabItem { Header = "База знаний", Content = editor }
             }
         };
     }

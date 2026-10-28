@@ -79,7 +79,8 @@ public static class ReceiverChecks {
             KnowledgeChecks.Run();
             Lr1ConsultationChecks.Run();
             ConsultationPresentationChecks.Run();
-            Console.WriteLine("проверки приемника, ядра, ручной консультации и ее представления пройдены; оборудование и нативный GUI этим self-test не проверялись");
+            KnowledgeEditorChecks.Run();
+            Console.WriteLine("проверки приемника, ядра, консультации и редактора пройдены; оборудование и нативный GUI этим self-test не проверялись");
             return 0;
         }
         catch (Exception exception) {

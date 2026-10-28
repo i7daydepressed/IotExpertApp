@@ -19,6 +19,7 @@ public partial class MainViewModel : ViewModelBase {
     private string? shownReceiverMessage;
 
     public ConsultationViewModel Consultation { get; } = new ConsultationViewModel();
+    public KnowledgeEditorViewModel KnowledgeEditor { get; }
 
     public ObservableCollection<string> Ports { get; } = new ObservableCollection<string>();
     public ObservableCollection<ObservationRow> Observations { get; } = new ObservableCollection<ObservationRow>();
@@ -37,6 +38,7 @@ public partial class MainViewModel : ViewModelBase {
 
     public MainViewModel(TelemetryReceiverService receiver) {
         this.receiver = receiver;
+        KnowledgeEditor = new KnowledgeEditorViewModel(path => Consultation.KnowledgePath = path);
         timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
         timer.Tick += (_, _) => Refresh();
         timer.Start();
