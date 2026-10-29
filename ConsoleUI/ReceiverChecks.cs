@@ -83,6 +83,7 @@ public static class ReceiverChecks {
             LiveAssessmentChecks.Run(json);
             SelectiveChecks.Run();
             GuidedCheckChecks.Run();
+            OnlineKnowledgeChecks.Run(json);
             Console.WriteLine("проверки приемника, ядра, консультации, редактора и живого профиля пройдены; оборудование и нативный GUI этим self-test не проверялись");
             return 0;
         }

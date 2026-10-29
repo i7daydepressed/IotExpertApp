@@ -33,9 +33,23 @@ public class MainWindow : Window {
             ItemsSource = new TabItem[] {
                 new TabItem { Header = "Стенд", Content = CreateMonitorPanel() },
                 new TabItem { Header = "Консультация (ручная)", Content = consultation },
-                new TabItem { Header = "База знаний", Content = editor }
+                new TabItem { Header = "Как система решает", Content = CreateKnowledgeWorkspace(editor) }
             }
         };
+    }
+
+    private static Control CreateKnowledgeWorkspace(KnowledgeEditorView editor) {
+        Grid host = new Grid();
+        ProfileKnowledgeView reference = new ProfileKnowledgeView();
+        BindProperty(reference, DataContextProperty, nameof(MainViewModel.ProfileKnowledge));
+        // видимость читаем у собственной VM справочника после смены DataContext
+        BindProperty(reference, IsVisibleProperty, nameof(ProfileKnowledgeViewModel.IsReferenceOpen));
+        DockPanel editorHost = new DockPanel { LastChildFill = true };
+        Button back = new Button { Content = "Вернуться к справочнику", Margin = new Thickness(0, 8, 0, 12) };
+        BindProperty(back, Button.CommandProperty, "ProfileKnowledge.OpenReferenceCommand"); DockPanel.SetDock(back, Dock.Top);
+        editorHost.Children.Add(back); editorHost.Children.Add(editor);
+        BindProperty(editorHost, IsVisibleProperty, "ProfileKnowledge.IsEditorOpen");
+        host.Children.Add(reference); host.Children.Add(editorHost); return host;
     }
 
     private static ScrollViewer CreateMonitorPanel() {
@@ -53,6 +67,8 @@ public class MainWindow : Window {
         Border surface = new Border { Padding = new Thickness(16), CornerRadius = new CornerRadius(10), Child = stand };
         surface.Bind(Border.BackgroundProperty, new Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension("SystemControlBackgroundChromeMediumLowBrush"));
         panel.Children.Add(surface);
+        OnlineDataView online = new OnlineDataView();
+        BindProperty(online, DataContextProperty, nameof(MainViewModel.Online)); panel.Children.Add(online);
         LiveMonitorView explanation = new LiveMonitorView(detailsOnly: true);
         BindProperty(explanation, DataContextProperty, nameof(MainViewModel.Live));
         panel.Children.Add(new Expander { Header = "Объяснение автоматической стратегии и профиль", Content = explanation });

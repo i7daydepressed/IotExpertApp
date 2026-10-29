@@ -97,7 +97,7 @@ public sealed class LiveAssessmentService {
         => state.IsSerial && packetAge.TotalMilliseconds > profile.PacketTimeoutMs;
 
     // ошибка после прежнего успеха остается ошибкой; старые values не превращаются в новый успех
-    private static string Normalize(SourceRequirement source, ReceiverState state, TimeSpan packetAge) {
+    internal static string Normalize(SourceRequirement source, ReceiverState state, TimeSpan packetAge) {
         TelemetryPacket? packet = state.Snapshot?.Packet;
         Observation? observation = packet?.Observations.FirstOrDefault(item => item.SourceId == source.SourceId);
         if (packet is null || observation is null) return "unknown";

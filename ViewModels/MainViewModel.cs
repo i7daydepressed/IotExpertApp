@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Threading.Tasks;
@@ -22,6 +23,8 @@ public partial class MainViewModel : ViewModelBase {
     public KnowledgeEditorViewModel KnowledgeEditor { get; }
     public LiveMonitorViewModel Live { get; } = new LiveMonitorViewModel();
     public ModuleChecksViewModel Modules { get; }
+    public OnlineDataViewModel Online { get; } = new OnlineDataViewModel();
+    public ProfileKnowledgeViewModel ProfileKnowledge { get; }
 
     public ObservableCollection<string> Ports { get; } = new ObservableCollection<string>();
     public ObservableCollection<ObservationRow> Observations { get; } = new ObservableCollection<ObservationRow>();
@@ -41,6 +44,7 @@ public partial class MainViewModel : ViewModelBase {
 
     public MainViewModel(TelemetryReceiverService receiver) {
         this.receiver = receiver;
+        ProfileKnowledge = new ProfileKnowledgeViewModel(Live);
         Modules = new ModuleChecksViewModel(receiver, () => Live.Profile);
         KnowledgeEditor = new KnowledgeEditorViewModel(path => Consultation.KnowledgePath = path);
         timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
@@ -102,6 +106,9 @@ public partial class MainViewModel : ViewModelBase {
         ReceiverState state = receiver.GetState();
         Live.Update(state);
         Modules.Update(state);
+        TimeSpan packetAge = state.Snapshot is null ? TimeSpan.Zero : Stopwatch.GetElapsedTime(state.Snapshot.ReceivedTick);
+        Online.Update(state, Live.Profile, packetAge);
+        ProfileKnowledge.Synchronize(Live.Profile, Live.IsLoading, Live.ProfileLoadStatus, Live.LoadMessage);
         Status = state.Status + (state.IsSerial ? " | " + state.Origin : state.Origin.Length == 0 ? "" : " | Запись");
         StandIdentity = state.Snapshot is null ? "Стенд еще не подключен" : state.Snapshot.Packet.DeviceId + " · " + state.Snapshot.Packet.FirmwareVersion;
         Playback = state.Playback;
