@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "id": "esp32-observability",
+  "version": "stand-monitor-1",
+  "title": "ESP32: контроль получения данных стенда",
+  "scope": "Учебный профиль оценивает только получение свежих наблюдений esp32/oled/dht11/light/ir. A1 означает достаточность этих наблюдений; A2 — показ доступных данных и ошибок до обслуживания. Это не заключение об исправности всего устройства. PIR не подтвержден; microSD проверяется при старте; контакты реле и изображение OLED не контролируются. Полярность цифровых входов и физические пороги не заданы. Автоматического восстановления и управления оборудованием нет.",
+  "device_id": "esp32-04b24754d744",
+  "config_version": "stand-v1-pir-unverified",
+  "packet_timeout_ms": 10000,
+  "required_sources": [
+    {
+      "source_id": "esp32",
+      "fact_id": "system_status",
+      "max_age_ms": 10000
+    },
+    {
+      "source_id": "oled",
+      "fact_id": "display_status",
+      "max_age_ms": 10000
+    },
+    {
+      "source_id": "dht11",
+      "fact_id": "climate_status",
+      "max_age_ms": 10000
+    },
+    {
+      "source_id": "light",
+      "fact_id": "light_status",
+      "max_age_ms": 10000
+    },
+    {
+      "source_id": "ir",
+      "fact_id": "ir_status",
+      "max_age_ms": 10000
+    }
+  ],
+  "diagnostic_knowledge": "esp32-observability.rules.json",
+  "strategy_knowledge": "../Knowledge/lr1-strategies.json",
+  "static_facts": {
+    "V5": true,
+    "V6": "да",
+    "V7": false,
+    "V8": "неприменимо",
+    "V9": "неприменимо",
+    "V10": "неприменимо",
+    "V11": "не задан"
+  },
+  "diagnostic_mapping": {
+    "ready": {
+      "V2": "достаточные",
+      "V3": "отсутствует",
+      "V4": "без ограничений"
+    },
+    "degraded": {
+      "V2": "достаточные",
+      "V3": "подтверждено",
+      "V4": "только ограниченный режим"
+    },
+    "incomplete": {
+      "V2": "неполные"
+    }
+  },
+  "module_check_knowledge": "esp32-module-checks.rules.json"
+}

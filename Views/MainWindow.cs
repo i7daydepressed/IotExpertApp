@@ -12,10 +12,10 @@ namespace IotExpertApp.Views;
 
 public class MainWindow : Window {
     public MainWindow() {
-        Title = "IotExpertApp — монитор и консультация";
-        Width = 1100;
+        Title = "IotExpertApp — состояние стенда";
+        Width = 1280;
         Height = 800;
-        MinWidth = 760;
+        MinWidth = 620;
         MinHeight = 500;
         using (Stream iconStream = AssetLoader.Open(new Uri("avares://IotExpertApp/Assets/avalonia-logo.ico"))) {
             Icon = new WindowIcon(iconStream);
@@ -31,7 +31,7 @@ public class MainWindow : Window {
         return new TabControl {
             Margin = new Thickness(16),
             ItemsSource = new TabItem[] {
-                new TabItem { Header = "Монитор", Content = CreateMonitorPanel() },
+                new TabItem { Header = "Стенд", Content = CreateMonitorPanel() },
                 new TabItem { Header = "Консультация (ручная)", Content = consultation },
                 new TabItem { Header = "База знаний", Content = editor }
             }
@@ -41,26 +41,35 @@ public class MainWindow : Window {
     private static ScrollViewer CreateMonitorPanel() {
         // вся страница прокручивается вместе: верхние поля не отнимают высоту у карточек
         StackPanel panel = new StackPanel { Spacing = 12, Margin = new Thickness(0, 8, 0, 0) };
-        panel.Children.Add(CreateControlsPanel());
-        panel.Children.Add(CreateStatePanel());
+        StackPanel stand = new StackPanel { Spacing = 12 };
+        stand.Children.Add(new TextBlock { Text = "Диагностика стенда ESP32", FontSize = 22, FontWeight = FontWeight.SemiBold });
+        stand.Children.Add(CreatePortControls());
+        stand.Children.Add(CreateBoundText(nameof(MainViewModel.Status)));
+        stand.Children.Add(CreateBoundText(nameof(MainViewModel.StandIdentity)));
+        LiveMonitorView live = new LiveMonitorView();
+        BindProperty(live, DataContextProperty, nameof(MainViewModel.Live)); stand.Children.Add(live);
+        ModuleChecksView modules = new ModuleChecksView();
+        BindProperty(modules, DataContextProperty, nameof(MainViewModel.Modules)); stand.Children.Add(modules);
+        Border surface = new Border { Padding = new Thickness(16), CornerRadius = new CornerRadius(10), Child = stand };
+        surface.Bind(Border.BackgroundProperty, new Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension("SystemControlBackgroundChromeMediumLowBrush"));
+        panel.Children.Add(surface);
+        LiveMonitorView explanation = new LiveMonitorView(detailsOnly: true);
+        BindProperty(explanation, DataContextProperty, nameof(MainViewModel.Live));
+        panel.Children.Add(new Expander { Header = "Объяснение автоматической стратегии и профиль", Content = explanation });
         panel.Children.Add(CreateBoundText(nameof(MainViewModel.Message)));
-        panel.Children.Add(CreateObservationsPanel());
+        StackPanel files = new StackPanel { Spacing = 8 };
+        files.Children.Add(CreatePathInput(nameof(MainViewModel.CapturePath),
+            "Новый файл записи при подключении (пусто — без записи), лимит 10 МиБ"));
+        files.Children.Add(CreateReplayControls());
+        files.Children.Add(CreateReplayFileControls());
+        panel.Children.Add(new Expander { Header = "Запись и воспроизведение", Content = files });
+        StackPanel details = new StackPanel { Spacing = 8 };
+        details.Children.Add(CreateStatePanel());
+        details.Children.Add(CreateObservationsPanel());
+        panel.Children.Add(new Expander { Header = "Технические сведения и все источники", Content = details });
         return new ScrollViewer { Content = panel };
     }
 
-    private static StackPanel CreateControlsPanel() {
-        StackPanel panel = new StackPanel { Spacing = 8 };
-        panel.Children.Add(new TextBlock {
-            Text = "Стенд ESP32 · монитор телеметрии",
-            FontSize = 23
-        });
-        panel.Children.Add(CreatePortControls());
-        panel.Children.Add(CreatePathInput(nameof(MainViewModel.CapturePath),
-            "Новый файл записи при подключении (пусто — без записи), лимит 10 МиБ"));
-        panel.Children.Add(CreateReplayControls());
-        panel.Children.Add(CreateReplayFileControls());
-        return panel;
-    }
 
     private static WrapPanel CreatePortControls() {
         WrapPanel panel = new WrapPanel();

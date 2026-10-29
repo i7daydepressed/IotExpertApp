@@ -5,10 +5,16 @@ using System.IO.Ports;
 using System.Threading;
 using System.Threading.Tasks;
 using IotExpertApp.Models.Telemetry;
+using IotExpertApp.Models.Checks;
+using IotExpertApp.Services.Checks;
 
 namespace IotExpertApp.Services.Telemetry;
 
 public sealed class TelemetryReceiverService : IAsyncDisposable {
+    private readonly SelectiveCheckSession checks = new SelectiveCheckSession();
+    private readonly GuidedCheckCoordinator guided;
+    private readonly Func<string, bool, ITelemetryByteSource> openSource;
+    private long testEvents, testErrors;
     private readonly object gate = new object();
     private readonly SemaphoreSlim lifecycle = new SemaphoreSlim(1, 1);
     private readonly ObservationStore store;
@@ -27,7 +33,27 @@ public sealed class TelemetryReceiverService : IAsyncDisposable {
     private long lastPacketTick;
     private long valid, logs, invalid, rejectedOrder, missing, oversized, tails;
 
-    public TelemetryReceiverService(ObservationStore store) => this.store = store;
+    public TelemetryReceiverService(ObservationStore store, Func<string, bool, ITelemetryByteSource>? sourceFactory = null, Func<TimeSpan>? clock = null) {
+        this.store = store;
+        guided = new GuidedCheckCoordinator(checks, clock);
+        openSource = sourceFactory ?? ((source, serial) => serial ? new SerialTelemetrySource(source) : new ReplayTelemetrySource(source));
+    }
+    public CheckSessionState GetChecks() { lock (gate) return checks.State(); }
+    public (GuidedCheckResult? Current, System.Collections.Immutable.ImmutableArray<GuidedCheckResult> History, string Message, TimeSpan Now) GetGuided() {
+        lock (gate) { guided.Tick(GetState()); return (guided.Current, guided.History, guided.Message, guided.Now); }
+    }
+    public bool StartGuided(string source, int seconds, uint window, IotExpertApp.Models.Knowledge.KnowledgeBase? knowledge) {
+        lock (gate) return guided.Start(source, seconds, window, knowledge, GetState());
+    }
+    public bool AnswerGuided(string answer) { lock (gate) return guided.Answer(answer); }
+    public void RecoverGuided() { lock (gate) guided.Recover(GetState()); }
+    public void RetryGuidedFinish() { lock (gate) guided.RetryFinish(); }
+
+    public bool QueueCheck(string source, string operation, uint? duration, ulong? target, out string error) {
+        lock (gate) return checks.Enqueue(source, operation, duration, target, out error);
+    }
+    public void AuthorizeRelay(bool ready) { lock (gate) checks.AuthorizeRelay(ready); }
+    public void AnswerCheck(CheckResult result, string answer, string method) { lock (gate) checks.Answer(result, answer, method); }
     public string[] GetPorts() => SerialPort.GetPortNames();
 
     // под той же блокировкой собираем счетчики и снимок, чтобы GUI видел согласованное состояние
@@ -41,7 +67,7 @@ public sealed class TelemetryReceiverService : IAsyncDisposable {
             return new ReceiverState(shown, origin, valid, logs, invalid, rejectedOrder,
                 missing, oversized, tails, lastMessage, store.Current, temporalRejected,
                 running, completed, !serialMode && paused, serialMode ? "живой поток" : description,
-                capture.Description);
+                capture.Description) { IsSerial = serialMode, TestEvents = testEvents, TestErrors = testErrors };
         }
     }
 
@@ -59,10 +85,13 @@ public sealed class TelemetryReceiverService : IAsyncDisposable {
     private async Task StartAsync(string source, bool serial, bool timed, string? capturePath) {
         await lifecycle.WaitAsync();
         try {
+            await EndGuidedAsync();
             await StopCoreAsync();
             cancellation = new CancellationTokenSource();
             lock (gate) {
                 store.Clear();
+                checks.Begin(serial);
+                testEvents = testErrors = 0;
                 replay.Reset(timed);
                 completed = false;
                 temporalRejected = 0;
@@ -87,14 +116,32 @@ public sealed class TelemetryReceiverService : IAsyncDisposable {
     private void Run(string source, bool serial, bool timed, string? capturePath, CancellationToken token, TaskCompletionSource started) {
         TelemetryLineAssembler assembler = new TelemetryLineAssembler();
         try {
-            using ITelemetryByteSource input = serial
-                ? new SerialTelemetrySource(source)
-                : new ReplayTelemetrySource(source);
+            CommandCompatibility? compatibility = null;
+            try { compatibility = CommandCompatibility.Load(Path.Combine(AppContext.BaseDirectory, "DeviceProfiles", "selective-checks.json")); }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or System.Text.Json.JsonException or InvalidOperationException or ArgumentException or FormatException or System.Collections.Generic.KeyNotFoundException) {
+                lock (gate) lastMessage = "Команды отключены: " + exception.Message;
+            }
+            lock (gate) checks.Configure(compatibility);
+            using ITelemetryByteSource input = openSource(source, serial);
             capture.Start(serial ? capturePath ?? "" : "");
             SetStatus(serial ? "порт открыт, ожидание пакета" : "чтение файла");
             started.TrySetResult();
             byte[] buffer = new byte[4096];
             while (!token.IsCancellationRequested) {
+                // очередь обслуживает тот же worker: между последней проверкой поколения и Write нет смены boot/Stop
+                lock (gate) {
+                    guided.Tick(GetState());
+                    while (!token.IsCancellationRequested && checks.TryTake(out CheckCommand? command)) {
+                        try {
+                            if (input is not ITelemetryCommandSource output) throw new IOException("источник не поддерживает запись");
+                            output.Write(CheckProtocol.Encode(command!.Request));
+                            checks.Sent(command, null);
+                        }
+                        catch (Exception exception) when (exception is IOException or TimeoutException or InvalidOperationException or UnauthorizedAccessException) {
+                            checks.Sent(command!, exception.Message);
+                        }
+                    }
+                }
                 int count;
                 try { count = input.Read(buffer); }
                 catch (TimeoutException) { continue; }
@@ -127,6 +174,7 @@ public sealed class TelemetryReceiverService : IAsyncDisposable {
             lock (gate) {
                 if (assembler.Finish()) tails++;
                 running = false;
+                checks.Invalidate();
                 if (token.IsCancellationRequested && status != "ошибка источника") status = "остановлено";
             }
             // при ошибке открытия тоже освобождаем ожидающий StartAsync и очередь lifecycle
@@ -141,8 +189,22 @@ public sealed class TelemetryReceiverService : IAsyncDisposable {
             if (frame.Oversized) {
                 lock (gate) {
                     oversized++;
-                    if (frame.JsonCandidate) invalid++; else logs++;
+                    if (frame.TestCandidate) testErrors++; else if (frame.JsonCandidate) invalid++; else logs++;
                     lastMessage = "строка больше 8192 байт с LF, пропущена";
+                }
+                continue;
+            }
+            if (frame.Text?.StartsWith("TEST_EVENT", StringComparison.Ordinal) == true) {
+                while (true) {
+                    if (!serial) replay.WaitIfPaused(token);
+                    token.ThrowIfCancellationRequested();
+                    lock (gate) {
+                        if (!serial && replay.GetState().Paused) continue;
+                        if (CheckProtocol.TryParse(frame.Text, out CheckEvent? checkEvent, out string eventError)
+                            && checks.Accept(checkEvent!, origin, out eventError)) { testEvents++; guided.Event(checkEvent!); }
+                        else { testErrors++; lastMessage = eventError; }
+                        break;
+                    }
                 }
                 continue;
             }
@@ -178,6 +240,8 @@ public sealed class TelemetryReceiverService : IAsyncDisposable {
                         lastMessage = message;
                         break;
                     }
+                    checks.Observe(packet!);
+                    guided.Tick(GetState());
                     valid++;
                     // счетчик интерфейса насыщается, точное значение пропуска остается в сообщении
                     missing = lost > (ulong)(long.MaxValue - missing) ? long.MaxValue : missing + (long)lost;
@@ -194,14 +258,29 @@ public sealed class TelemetryReceiverService : IAsyncDisposable {
 
     public async Task StopAsync() {
         await lifecycle.WaitAsync();
-        try { await StopCoreAsync(); }
+        try { await EndGuidedAsync(); await StopCoreAsync(); }
         finally { lifecycle.Release(); }
+    }
+
+    private async Task EndGuidedAsync() {
+        bool wait;
+        lock (gate) {
+            guided.PrepareStop();
+            wait = running && serialMode && guided.Current?.Active == true && guided.Current.Source == "oled";
+        }
+        long start = Stopwatch.GetTimestamp();
+        // прежний worker получает короткое время на адресный finish; второй порт для уборки не открываем
+        while (wait && Stopwatch.GetElapsedTime(start).TotalMilliseconds < 600) {
+            await Task.Delay(20);
+            lock (gate) wait = running && guided.Current?.Active == true;
+        }
+        lock (gate) guided.Interrupt();
     }
 
     // сначала просим цикл завершиться, затем ждем using/Dispose источника и только потом допускаем новый запуск
     // у UART короткий ReadTimeout, поэтому пустой поток тоже возвращает управление для проверки отмены
     private async Task StopCoreAsync() {
-        cancellation?.Cancel();
+        lock (gate) { checks.Invalidate(); cancellation?.Cancel(); }
         if (worker is not null) await worker;
         cancellation?.Dispose();
         cancellation = null;

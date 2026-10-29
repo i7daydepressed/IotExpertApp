@@ -80,7 +80,10 @@ public static class ReceiverChecks {
             Lr1ConsultationChecks.Run();
             ConsultationPresentationChecks.Run();
             KnowledgeEditorChecks.Run();
-            Console.WriteLine("проверки приемника, ядра, консультации и редактора пройдены; оборудование и нативный GUI этим self-test не проверялись");
+            LiveAssessmentChecks.Run(json);
+            SelectiveChecks.Run();
+            GuidedCheckChecks.Run();
+            Console.WriteLine("проверки приемника, ядра, консультации, редактора и живого профиля пройдены; оборудование и нативный GUI этим self-test не проверялись");
             return 0;
         }
         catch (Exception exception) {

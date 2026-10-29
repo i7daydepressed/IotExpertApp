@@ -20,6 +20,8 @@ public partial class MainViewModel : ViewModelBase {
 
     public ConsultationViewModel Consultation { get; } = new ConsultationViewModel();
     public KnowledgeEditorViewModel KnowledgeEditor { get; }
+    public LiveMonitorViewModel Live { get; } = new LiveMonitorViewModel();
+    public ModuleChecksViewModel Modules { get; }
 
     public ObservableCollection<string> Ports { get; } = new ObservableCollection<string>();
     public ObservableCollection<ObservationRow> Observations { get; } = new ObservableCollection<ObservationRow>();
@@ -34,10 +36,12 @@ public partial class MainViewModel : ViewModelBase {
     [ObservableProperty] private string identity = "нет принятого пакета";
     [ObservableProperty] private string statistics = "";
     [ObservableProperty] private string message = "";
+    [ObservableProperty] private string standIdentity = "Стенд еще не подключен";
     [ObservableProperty] private string localDiagnostic = "";
 
     public MainViewModel(TelemetryReceiverService receiver) {
         this.receiver = receiver;
+        Modules = new ModuleChecksViewModel(receiver, () => Live.Profile);
         KnowledgeEditor = new KnowledgeEditorViewModel(path => Consultation.KnowledgePath = path);
         timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
         timer.Tick += (_, _) => Refresh();
@@ -50,8 +54,7 @@ public partial class MainViewModel : ViewModelBase {
         try {
             Ports.Clear();
             foreach (string port in receiver.GetPorts()) Ports.Add(port);
-            if (SelectedPort is null || !Ports.Contains(SelectedPort))
-                SelectedPort = Ports.Count > 0 ? Ports[0] : null;
+            SelectedPort = PortSelectionService.Choose(SelectedPort, Ports);
         }
         catch (Exception exception) { Message = exception.Message; }
     }
@@ -59,7 +62,10 @@ public partial class MainViewModel : ViewModelBase {
     [RelayCommand]
     private async Task ConnectAsync() {
         if (string.IsNullOrWhiteSpace(SelectedPort)) { Message = "выбери последовательный порт"; return; }
-        await receiver.StartSerialAsync(SelectedPort, CapturePath);
+        string port = SelectedPort;
+        string captureFile = CapturePath;
+        await Live.EnsureLoadedAsync();
+        await receiver.StartSerialAsync(port, captureFile);
         ShowReceiverMessage();
     }
 
@@ -67,7 +73,10 @@ public partial class MainViewModel : ViewModelBase {
     private async Task ReadFileAsync() {
         try {
             if (!File.Exists(ReplayPath)) { Message = "файл не найден"; return; }
-            await receiver.StartFileAsync(ReplayPath, TimedReplay);
+            string replayFile = ReplayPath;
+            bool timed = TimedReplay;
+            await Live.EnsureLoadedAsync();
+            await receiver.StartFileAsync(replayFile, timed);
             ShowReceiverMessage();
         }
         catch (Exception exception) { Message = exception.Message; }
@@ -91,7 +100,10 @@ public partial class MainViewModel : ViewModelBase {
 
     private void Refresh() {
         ReceiverState state = receiver.GetState();
-        Status = state.Status + " | " + state.Origin;
+        Live.Update(state);
+        Modules.Update(state);
+        Status = state.Status + (state.IsSerial ? " | " + state.Origin : state.Origin.Length == 0 ? "" : " | Запись");
+        StandIdentity = state.Snapshot is null ? "Стенд еще не подключен" : state.Snapshot.Packet.DeviceId + " · " + state.Snapshot.Packet.FirmwareVersion;
         Playback = state.Playback;
         Capture = state.Capture;
         PauseText = state.ReplayPaused ? "Продолжить" : "Пауза";
@@ -117,7 +129,7 @@ public partial class MainViewModel : ViewModelBase {
             string age = item.LastSuccessMs.HasValue ? (packet.UptimeMs - item.LastSuccessMs.Value) + " мс на момент снимка" : "нет успешного измерения";
             string note = item.SourceId switch {
                 "pir" => "питание не подтверждено; raw GPIO не является движением",
-                "microsd" => "однократный стартовый тест, не текущая доступность карты",
+                "microsd" => "результат последнего стартового или выборочного теста, не текущая доступность карты",
                 "oled" => "передача framebuffer, не проверка картинки",
                 "relay_1" or "relay_2" => "GPIO/импульс, без подтверждения контактов",
                 "dht11" => "температура окружающей среды, не кристалла ESP32",

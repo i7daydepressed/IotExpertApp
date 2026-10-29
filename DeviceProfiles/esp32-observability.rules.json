@@ -1,0 +1,497 @@
+{
+  "schema_version": 2,
+  "knowledge_base_id": "esp32-observability-diagnostic",
+  "version": "stand-monitor-1",
+  "synthetic": false,
+  "facts": [
+    {
+      "id": "system_status",
+      "name": "статус наблюдения esp32",
+      "type": "enum",
+      "role": "input",
+      "options": [
+        "ok",
+        "error",
+        "unavailable",
+        "not_polled",
+        "disabled",
+        "stale",
+        "unknown"
+      ],
+      "question": "Каков нормализованный статус esp32?"
+    },
+    {
+      "id": "display_status",
+      "name": "статус наблюдения oled",
+      "type": "enum",
+      "role": "input",
+      "options": [
+        "ok",
+        "error",
+        "unavailable",
+        "not_polled",
+        "disabled",
+        "stale",
+        "unknown"
+      ],
+      "question": "Каков нормализованный статус oled?"
+    },
+    {
+      "id": "climate_status",
+      "name": "статус наблюдения dht11",
+      "type": "enum",
+      "role": "input",
+      "options": [
+        "ok",
+        "error",
+        "unavailable",
+        "not_polled",
+        "disabled",
+        "stale",
+        "unknown"
+      ],
+      "question": "Каков нормализованный статус dht11?"
+    },
+    {
+      "id": "light_status",
+      "name": "статус наблюдения light",
+      "type": "enum",
+      "role": "input",
+      "options": [
+        "ok",
+        "error",
+        "unavailable",
+        "not_polled",
+        "disabled",
+        "stale",
+        "unknown"
+      ],
+      "question": "Каков нормализованный статус light?"
+    },
+    {
+      "id": "ir_status",
+      "name": "статус наблюдения ir",
+      "type": "enum",
+      "role": "input",
+      "options": [
+        "ok",
+        "error",
+        "unavailable",
+        "not_polled",
+        "disabled",
+        "stale",
+        "unknown"
+      ],
+      "question": "Каков нормализованный статус ir?"
+    },
+    {
+      "id": "diagnostic_state",
+      "name": "достаточность наблюдений профиля",
+      "type": "enum",
+      "role": "goal",
+      "options": [
+        "ready",
+        "degraded",
+        "incomplete"
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "id": "OBS-01",
+      "title": "Все обязательные источники дают свежий успех",
+      "priority": 100,
+      "condition": {
+        "all": [
+          {
+            "fact_id": "system_status",
+            "op": "eq",
+            "value": "ok"
+          },
+          {
+            "fact_id": "display_status",
+            "op": "eq",
+            "value": "ok"
+          },
+          {
+            "fact_id": "climate_status",
+            "op": "eq",
+            "value": "ok"
+          },
+          {
+            "fact_id": "light_status",
+            "op": "eq",
+            "value": "ok"
+          },
+          {
+            "fact_id": "ir_status",
+            "op": "eq",
+            "value": "ok"
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "diagnostic_state",
+          "value": "ready"
+        }
+      ],
+      "explanation": "Только достаточность текущих наблюдений выбранной функции, не физическая исправность",
+      "provenance": "Проектное решение STEP_09, профиль stand-monitor-1; правила контроля наблюдаемости, не результаты физической калибровки"
+    },
+    {
+      "id": "OBS-02",
+      "title": "Текущая ошибка при полных наблюдениях",
+      "priority": 100,
+      "condition": {
+        "all": [
+          {
+            "all": [
+              {
+                "any": [
+                  {
+                    "fact_id": "system_status",
+                    "op": "eq",
+                    "value": "ok"
+                  },
+                  {
+                    "fact_id": "system_status",
+                    "op": "eq",
+                    "value": "error"
+                  },
+                  {
+                    "fact_id": "system_status",
+                    "op": "eq",
+                    "value": "unavailable"
+                  }
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "fact_id": "display_status",
+                    "op": "eq",
+                    "value": "ok"
+                  },
+                  {
+                    "fact_id": "display_status",
+                    "op": "eq",
+                    "value": "error"
+                  },
+                  {
+                    "fact_id": "display_status",
+                    "op": "eq",
+                    "value": "unavailable"
+                  }
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "fact_id": "climate_status",
+                    "op": "eq",
+                    "value": "ok"
+                  },
+                  {
+                    "fact_id": "climate_status",
+                    "op": "eq",
+                    "value": "error"
+                  },
+                  {
+                    "fact_id": "climate_status",
+                    "op": "eq",
+                    "value": "unavailable"
+                  }
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "fact_id": "light_status",
+                    "op": "eq",
+                    "value": "ok"
+                  },
+                  {
+                    "fact_id": "light_status",
+                    "op": "eq",
+                    "value": "error"
+                  },
+                  {
+                    "fact_id": "light_status",
+                    "op": "eq",
+                    "value": "unavailable"
+                  }
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "fact_id": "ir_status",
+                    "op": "eq",
+                    "value": "ok"
+                  },
+                  {
+                    "fact_id": "ir_status",
+                    "op": "eq",
+                    "value": "error"
+                  },
+                  {
+                    "fact_id": "ir_status",
+                    "op": "eq",
+                    "value": "unavailable"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "any": [
+                  {
+                    "fact_id": "system_status",
+                    "op": "eq",
+                    "value": "error"
+                  },
+                  {
+                    "fact_id": "system_status",
+                    "op": "eq",
+                    "value": "unavailable"
+                  }
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "fact_id": "display_status",
+                    "op": "eq",
+                    "value": "error"
+                  },
+                  {
+                    "fact_id": "display_status",
+                    "op": "eq",
+                    "value": "unavailable"
+                  }
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "fact_id": "climate_status",
+                    "op": "eq",
+                    "value": "error"
+                  },
+                  {
+                    "fact_id": "climate_status",
+                    "op": "eq",
+                    "value": "unavailable"
+                  }
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "fact_id": "light_status",
+                    "op": "eq",
+                    "value": "error"
+                  },
+                  {
+                    "fact_id": "light_status",
+                    "op": "eq",
+                    "value": "unavailable"
+                  }
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "fact_id": "ir_status",
+                    "op": "eq",
+                    "value": "error"
+                  },
+                  {
+                    "fact_id": "ir_status",
+                    "op": "eq",
+                    "value": "unavailable"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "diagnostic_state",
+          "value": "degraded"
+        }
+      ],
+      "explanation": "Сведения об ошибке известны; ограниченный режим показывает оставшиеся данные и причины ошибок",
+      "provenance": "Проектное решение STEP_09, профиль stand-monitor-1; правила контроля наблюдаемости, не результаты физической калибровки"
+    },
+    {
+      "id": "OBS-03",
+      "title": "Не хватает актуальных наблюдений",
+      "priority": 100,
+      "condition": {
+        "any": [
+          {
+            "any": [
+              {
+                "fact_id": "system_status",
+                "op": "eq",
+                "value": "not_polled"
+              },
+              {
+                "fact_id": "system_status",
+                "op": "eq",
+                "value": "disabled"
+              },
+              {
+                "fact_id": "system_status",
+                "op": "eq",
+                "value": "stale"
+              },
+              {
+                "fact_id": "system_status",
+                "op": "eq",
+                "value": "unknown"
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "fact_id": "display_status",
+                "op": "eq",
+                "value": "not_polled"
+              },
+              {
+                "fact_id": "display_status",
+                "op": "eq",
+                "value": "disabled"
+              },
+              {
+                "fact_id": "display_status",
+                "op": "eq",
+                "value": "stale"
+              },
+              {
+                "fact_id": "display_status",
+                "op": "eq",
+                "value": "unknown"
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "fact_id": "climate_status",
+                "op": "eq",
+                "value": "not_polled"
+              },
+              {
+                "fact_id": "climate_status",
+                "op": "eq",
+                "value": "disabled"
+              },
+              {
+                "fact_id": "climate_status",
+                "op": "eq",
+                "value": "stale"
+              },
+              {
+                "fact_id": "climate_status",
+                "op": "eq",
+                "value": "unknown"
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "fact_id": "light_status",
+                "op": "eq",
+                "value": "not_polled"
+              },
+              {
+                "fact_id": "light_status",
+                "op": "eq",
+                "value": "disabled"
+              },
+              {
+                "fact_id": "light_status",
+                "op": "eq",
+                "value": "stale"
+              },
+              {
+                "fact_id": "light_status",
+                "op": "eq",
+                "value": "unknown"
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "fact_id": "ir_status",
+                "op": "eq",
+                "value": "not_polled"
+              },
+              {
+                "fact_id": "ir_status",
+                "op": "eq",
+                "value": "disabled"
+              },
+              {
+                "fact_id": "ir_status",
+                "op": "eq",
+                "value": "stale"
+              },
+              {
+                "fact_id": "ir_status",
+                "op": "eq",
+                "value": "unknown"
+              }
+            ]
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "diagnostic_state",
+          "value": "incomplete"
+        }
+      ],
+      "explanation": "Недоступность актуального основания не доказывает отказ устройства",
+      "provenance": "Проектное решение STEP_09, профиль stand-monitor-1; правила контроля наблюдаемости, не результаты физической калибровки"
+    }
+  ],
+  "question_order": [
+    "system_status",
+    "display_status",
+    "climate_status",
+    "light_status",
+    "ir_status"
+  ],
+  "outcomes": [
+    {
+      "value": "ready",
+      "kind": "strategy",
+      "title": "Наблюдения достаточны",
+      "description": "Все пять обязательных источников имеют свежий статус ok"
+    },
+    {
+      "value": "degraded",
+      "kind": "strategy",
+      "title": "Есть текущие ошибки",
+      "description": "Наблюдения полны, хотя один или несколько источников сообщили error/unavailable"
+    },
+    {
+      "value": "incomplete",
+      "kind": "clarification",
+      "title": "Наблюдений недостаточно",
+      "description": "Есть устаревший, отключенный, не опрошенный или неизвестный источник"
+    }
+  ]
+}

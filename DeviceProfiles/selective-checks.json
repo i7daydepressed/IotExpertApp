@@ -1,0 +1,9 @@
+{
+  "schema_version": 2,
+  "config_version": "stand-v1-pir-unverified",
+  "device_id": "esp32-04b24754d744",
+  "firmware_protocols": {
+    "lr3-2-nogit-db7e84a2a731": 1,
+    "lr3-3-nogit-9d4af0c663d9": 2
+  }
+}

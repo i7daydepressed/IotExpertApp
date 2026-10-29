@@ -8,6 +8,7 @@ public sealed class TelemetryLineAssembler {
     private readonly List<byte> bytes = new List<byte>(8191);
     private bool dropping;
     private bool jsonCandidate;
+    private bool testCandidate;
 
     // один read может содержать кусок строки или сразу несколько строк, поэтому хвост держим между вызовами
     // полный кадр ограничен 8192 байтами вместе с LF: до разделителя храним не больше 8191 байта
@@ -18,16 +19,17 @@ public sealed class TelemetryLineAssembler {
             byte value = buffer[index];
             if (value == 10) {
                 if (dropping)
-                    result.Add(new Frame(null, true, jsonCandidate));
+                    result.Add(new Frame(null, true, jsonCandidate) { TestCandidate = testCandidate });
                 else {
                     string text = Encoding.UTF8.GetString(bytes.ToArray()).TrimEnd('\r');
-                    result.Add(new Frame(text, false, text.StartsWith("{")));
+                    result.Add(new Frame(text, false, text.StartsWith("{")) { TestCandidate = text.StartsWith("TEST_EVENT", System.StringComparison.Ordinal) });
                 }
                 Reset();
             }
             else if (!dropping) {
                 if (bytes.Count == 0) jsonCandidate = value == (byte)'{';
                 if (bytes.Count == 8191) {
+                    testCandidate = Encoding.ASCII.GetString(bytes.GetRange(0, 11).ToArray()).StartsWith("TEST_EVENT", System.StringComparison.Ordinal);
                     dropping = true;
                     bytes.Clear();
                 }
@@ -48,5 +50,6 @@ public sealed class TelemetryLineAssembler {
         bytes.Clear();
         dropping = false;
         jsonCandidate = false;
+        testCandidate = false;
     }
 }

@@ -15,12 +15,21 @@ public sealed record TelemetryPacket(
     string FirmwareVersion, string ConfigVersion, string LocalDiagnostic,
     IReadOnlyList<Observation> Observations);
 
-public sealed record ReceivedSnapshot(TelemetryPacket Packet, DateTimeOffset ReceivedAt, string Origin);
+public sealed record ReceivedSnapshot(TelemetryPacket Packet, DateTimeOffset ReceivedAt, string Origin) {
+    // монотонное время приема не зависит от перевода системных часов
+    public long ReceivedTick { get; init; } = System.Diagnostics.Stopwatch.GetTimestamp();
+}
 
-public sealed record Frame(string? Text, bool Oversized, bool JsonCandidate);
+public sealed record Frame(string? Text, bool Oversized, bool JsonCandidate) {
+    public bool TestCandidate { get; init; }
+}
 
 public sealed record ReceiverState(
     string Status, string Origin, long Valid, long Logs, long Invalid,
     long RejectedOrder, long Missing, long Oversized, long Tails,
     string LastMessage, ReceivedSnapshot? Snapshot, long TemporalRejected,
-    bool Running, bool Completed, bool ReplayPaused, string Playback, string Capture);
+    bool Running, bool Completed, bool ReplayPaused, string Playback, string Capture) {
+    public bool IsSerial { get; init; }
+    public long TestEvents { get; init; }
+    public long TestErrors { get; init; }
+}

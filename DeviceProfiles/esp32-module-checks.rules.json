@@ -1,0 +1,4483 @@
+{
+  "schema_version": 2,
+  "knowledge_base_id": "esp32-module-checks",
+  "version": "module-feedback-1",
+  "synthetic": false,
+  "facts": [
+    {
+      "id": "module",
+      "name": "module",
+      "type": "enum",
+      "role": "input",
+      "options": [
+        "esp32",
+        "oled",
+        "dht11",
+        "light",
+        "ir",
+        "pir",
+        "microsd",
+        "relay_1",
+        "relay_2"
+      ],
+      "question": "Контекст проверки: module"
+    },
+    {
+      "id": "operation",
+      "name": "operation",
+      "type": "enum",
+      "role": "input",
+      "options": [
+        "snapshot",
+        "display_test",
+        "display_hold",
+        "read_next",
+        "observe",
+        "run",
+        "pulse"
+      ],
+      "question": "Контекст проверки: operation"
+    },
+    {
+      "id": "source_kind",
+      "name": "source_kind",
+      "type": "enum",
+      "role": "input",
+      "options": [
+        "live",
+        "replay",
+        "synthetic"
+      ],
+      "question": "Контекст проверки: source_kind"
+    },
+    {
+      "id": "boot_matches",
+      "name": "boot_matches",
+      "type": "bool",
+      "role": "input",
+      "question": "Основание проверки: boot_matches"
+    },
+    {
+      "id": "machine_stage",
+      "name": "machine_stage",
+      "type": "enum",
+      "role": "input",
+      "options": [
+        "none",
+        "accepted",
+        "running",
+        "completed",
+        "failed",
+        "cancelled",
+        "rejected"
+      ],
+      "question": "Контекст проверки: machine_stage"
+    },
+    {
+      "id": "reason_known",
+      "name": "reason_known",
+      "type": "bool",
+      "role": "input",
+      "question": "Основание проверки: reason_known"
+    },
+    {
+      "id": "machine_ok",
+      "name": "machine_ok",
+      "type": "bool",
+      "role": "input",
+      "question": "Основание проверки: machine_ok"
+    },
+    {
+      "id": "human_required",
+      "name": "human_required",
+      "type": "bool",
+      "role": "input",
+      "question": "Основание проверки: human_required"
+    },
+    {
+      "id": "human",
+      "name": "human",
+      "type": "enum",
+      "role": "input",
+      "options": [
+        "none",
+        "yes",
+        "no",
+        "unclear",
+        "skipped"
+      ],
+      "question": "Контекст проверки: human"
+    },
+    {
+      "id": "end_reason",
+      "name": "end_reason",
+      "type": "enum",
+      "role": "input",
+      "options": [
+        "pending",
+        "answered",
+        "timeout",
+        "interrupted",
+        "uncertain",
+        "early_end",
+        "machine",
+        "replay"
+      ],
+      "question": "Контекст проверки: end_reason"
+    },
+    {
+      "id": "oled_transfer",
+      "name": "oled_transfer",
+      "type": "bool",
+      "role": "input",
+      "question": "Основание проверки: oled_transfer"
+    },
+    {
+      "id": "oled_restored",
+      "name": "oled_restored",
+      "type": "bool",
+      "role": "input",
+      "question": "Основание проверки: oled_restored"
+    },
+    {
+      "id": "relay_return",
+      "name": "relay_return",
+      "type": "bool",
+      "role": "input",
+      "question": "Основание проверки: relay_return"
+    },
+    {
+      "id": "has_transitions",
+      "name": "has_transitions",
+      "type": "bool",
+      "role": "input",
+      "question": "Основание проверки: has_transitions"
+    },
+    {
+      "id": "sd_pass",
+      "name": "sd_pass",
+      "type": "bool",
+      "role": "input",
+      "question": "Основание проверки: sd_pass"
+    },
+    {
+      "id": "sd_cleanup",
+      "name": "sd_cleanup",
+      "type": "bool",
+      "role": "input",
+      "question": "Основание проверки: sd_cleanup"
+    },
+    {
+      "id": "module_verdict",
+      "name": "Заключение выборочной проверки",
+      "type": "enum",
+      "role": "goal",
+      "options": [
+        "machine_error",
+        "not_executed",
+        "interrupted",
+        "no_answer",
+        "skipped",
+        "unclear",
+        "oled_seen",
+        "oled_not_seen",
+        "relay_heard",
+        "relay_not_heard",
+        "gpio_observed",
+        "pir_observed",
+        "gpio_no_reaction",
+        "mismatch",
+        "metrics",
+        "new_read",
+        "file_test",
+        "pending",
+        "insufficient"
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "id": "MOD-01",
+      "title": "Ошибка машинной проверки",
+      "priority": 100,
+      "condition": {
+        "any": [
+          {
+            "fact_id": "machine_stage",
+            "op": "eq",
+            "value": "failed"
+          },
+          {
+            "all": [
+              {
+                "fact_id": "machine_stage",
+                "op": "eq",
+                "value": "completed"
+              },
+              {
+                "fact_id": "machine_ok",
+                "op": "eq",
+                "value": false
+              }
+            ]
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "module_verdict",
+          "value": "machine_error"
+        }
+      ],
+      "explanation": "Подтверждена ошибка операции; ответ человека ее не отменяет, физическая причина может быть неизвестна",
+      "provenance": "Проектное решение STEP11 A5; подтвержденные machine/human/workflow выбранного request/boot; без физической калибровки"
+    },
+    {
+      "id": "MOD-02",
+      "title": "Проверка не выполнена",
+      "priority": 100,
+      "condition": {
+        "all": [
+          {
+            "all": [
+              {
+                "fact_id": "machine_stage",
+                "op": "ne",
+                "value": "failed"
+              },
+              {
+                "any": [
+                  {
+                    "fact_id": "machine_stage",
+                    "op": "ne",
+                    "value": "completed"
+                  },
+                  {
+                    "fact_id": "machine_ok",
+                    "op": "ne",
+                    "value": false
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "fact_id": "machine_stage",
+            "op": "eq",
+            "value": "rejected"
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "module_verdict",
+          "value": "not_executed"
+        }
+      ],
+      "explanation": "Запрос отклонен до исполнения; это не диагноз поломки",
+      "provenance": "Проектное решение STEP11 A5; подтвержденные machine/human/workflow выбранного request/boot; без физической калибровки"
+    },
+    {
+      "id": "MOD-03",
+      "title": "Проверка прервана / исход неизвестен",
+      "priority": 100,
+      "condition": {
+        "all": [
+          {
+            "all": [
+              {
+                "fact_id": "machine_stage",
+                "op": "ne",
+                "value": "failed"
+              },
+              {
+                "any": [
+                  {
+                    "fact_id": "machine_stage",
+                    "op": "ne",
+                    "value": "completed"
+                  },
+                  {
+                    "fact_id": "machine_ok",
+                    "op": "ne",
+                    "value": false
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "fact_id": "machine_stage",
+            "op": "ne",
+            "value": "rejected"
+          },
+          {
+            "any": [
+              {
+                "fact_id": "boot_matches",
+                "op": "eq",
+                "value": false
+              },
+              {
+                "fact_id": "end_reason",
+                "op": "eq",
+                "value": "interrupted"
+              },
+              {
+                "fact_id": "end_reason",
+                "op": "eq",
+                "value": "uncertain"
+              },
+              {
+                "fact_id": "end_reason",
+                "op": "eq",
+                "value": "early_end"
+              },
+              {
+                "fact_id": "machine_stage",
+                "op": "eq",
+                "value": "cancelled"
+              }
+            ]
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "module_verdict",
+          "value": "interrupted"
+        }
+      ],
+      "explanation": "Проверка прервана / исход неизвестен",
+      "provenance": "Проектное решение STEP11 A5; подтвержденные machine/human/workflow выбранного request/boot; без физической калибровки"
+    },
+    {
+      "id": "MOD-04",
+      "title": "Не подтверждено: ответ не получен",
+      "priority": 100,
+      "condition": {
+        "all": [
+          {
+            "all": [
+              {
+                "all": [
+                  {
+                    "all": [
+                      {
+                        "fact_id": "machine_stage",
+                        "op": "ne",
+                        "value": "failed"
+                      },
+                      {
+                        "any": [
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "ne",
+                            "value": "completed"
+                          },
+                          {
+                            "fact_id": "machine_ok",
+                            "op": "ne",
+                            "value": false
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "machine_stage",
+                    "op": "ne",
+                    "value": "rejected"
+                  },
+                  {
+                    "all": [
+                      {
+                        "fact_id": "boot_matches",
+                        "op": "ne",
+                        "value": false
+                      },
+                      {
+                        "fact_id": "end_reason",
+                        "op": "ne",
+                        "value": "interrupted"
+                      },
+                      {
+                        "fact_id": "end_reason",
+                        "op": "ne",
+                        "value": "uncertain"
+                      },
+                      {
+                        "fact_id": "end_reason",
+                        "op": "ne",
+                        "value": "early_end"
+                      },
+                      {
+                        "fact_id": "machine_stage",
+                        "op": "ne",
+                        "value": "cancelled"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "fact_id": "reason_known",
+                "op": "eq",
+                "value": true
+              },
+              {
+                "any": [
+                  {
+                    "fact_id": "source_kind",
+                    "op": "eq",
+                    "value": "live"
+                  },
+                  {
+                    "fact_id": "source_kind",
+                    "op": "eq",
+                    "value": "synthetic"
+                  }
+                ]
+              },
+              {
+                "fact_id": "boot_matches",
+                "op": "eq",
+                "value": true
+              }
+            ]
+          },
+          {
+            "fact_id": "human_required",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "fact_id": "end_reason",
+            "op": "eq",
+            "value": "timeout"
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "module_verdict",
+          "value": "no_answer"
+        }
+      ],
+      "explanation": "Не подтверждено: ответ не получен",
+      "provenance": "Проектное решение STEP11 A5; подтвержденные machine/human/workflow выбранного request/boot; без физической калибровки"
+    },
+    {
+      "id": "MOD-05",
+      "title": "Пользователь не проверял",
+      "priority": 100,
+      "condition": {
+        "all": [
+          {
+            "all": [
+              {
+                "all": [
+                  {
+                    "all": [
+                      {
+                        "fact_id": "machine_stage",
+                        "op": "ne",
+                        "value": "failed"
+                      },
+                      {
+                        "any": [
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "ne",
+                            "value": "completed"
+                          },
+                          {
+                            "fact_id": "machine_ok",
+                            "op": "ne",
+                            "value": false
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "machine_stage",
+                    "op": "ne",
+                    "value": "rejected"
+                  },
+                  {
+                    "all": [
+                      {
+                        "fact_id": "boot_matches",
+                        "op": "ne",
+                        "value": false
+                      },
+                      {
+                        "fact_id": "end_reason",
+                        "op": "ne",
+                        "value": "interrupted"
+                      },
+                      {
+                        "fact_id": "end_reason",
+                        "op": "ne",
+                        "value": "uncertain"
+                      },
+                      {
+                        "fact_id": "end_reason",
+                        "op": "ne",
+                        "value": "early_end"
+                      },
+                      {
+                        "fact_id": "machine_stage",
+                        "op": "ne",
+                        "value": "cancelled"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "fact_id": "reason_known",
+                "op": "eq",
+                "value": true
+              },
+              {
+                "any": [
+                  {
+                    "fact_id": "source_kind",
+                    "op": "eq",
+                    "value": "live"
+                  },
+                  {
+                    "fact_id": "source_kind",
+                    "op": "eq",
+                    "value": "synthetic"
+                  }
+                ]
+              },
+              {
+                "fact_id": "boot_matches",
+                "op": "eq",
+                "value": true
+              }
+            ]
+          },
+          {
+            "fact_id": "end_reason",
+            "op": "eq",
+            "value": "answered"
+          },
+          {
+            "fact_id": "human",
+            "op": "eq",
+            "value": "skipped"
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "module_verdict",
+          "value": "skipped"
+        }
+      ],
+      "explanation": "Пользователь не проверял",
+      "provenance": "Проектное решение STEP11 A5; подтвержденные machine/human/workflow выбранного request/boot; без физической калибровки"
+    },
+    {
+      "id": "MOD-06",
+      "title": "Нужна повторная проверка: ответ неясен",
+      "priority": 100,
+      "condition": {
+        "all": [
+          {
+            "all": [
+              {
+                "all": [
+                  {
+                    "all": [
+                      {
+                        "fact_id": "machine_stage",
+                        "op": "ne",
+                        "value": "failed"
+                      },
+                      {
+                        "any": [
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "ne",
+                            "value": "completed"
+                          },
+                          {
+                            "fact_id": "machine_ok",
+                            "op": "ne",
+                            "value": false
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "machine_stage",
+                    "op": "ne",
+                    "value": "rejected"
+                  },
+                  {
+                    "all": [
+                      {
+                        "fact_id": "boot_matches",
+                        "op": "ne",
+                        "value": false
+                      },
+                      {
+                        "fact_id": "end_reason",
+                        "op": "ne",
+                        "value": "interrupted"
+                      },
+                      {
+                        "fact_id": "end_reason",
+                        "op": "ne",
+                        "value": "uncertain"
+                      },
+                      {
+                        "fact_id": "end_reason",
+                        "op": "ne",
+                        "value": "early_end"
+                      },
+                      {
+                        "fact_id": "machine_stage",
+                        "op": "ne",
+                        "value": "cancelled"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "fact_id": "reason_known",
+                "op": "eq",
+                "value": true
+              },
+              {
+                "any": [
+                  {
+                    "fact_id": "source_kind",
+                    "op": "eq",
+                    "value": "live"
+                  },
+                  {
+                    "fact_id": "source_kind",
+                    "op": "eq",
+                    "value": "synthetic"
+                  }
+                ]
+              },
+              {
+                "fact_id": "boot_matches",
+                "op": "eq",
+                "value": true
+              }
+            ]
+          },
+          {
+            "fact_id": "end_reason",
+            "op": "eq",
+            "value": "answered"
+          },
+          {
+            "fact_id": "human",
+            "op": "eq",
+            "value": "unclear"
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "module_verdict",
+          "value": "unclear"
+        }
+      ],
+      "explanation": "Нужна повторная проверка: ответ неясен",
+      "provenance": "Проектное решение STEP11 A5; подтвержденные machine/human/workflow выбранного request/boot; без физической калибровки"
+    },
+    {
+      "id": "MOD-07",
+      "title": "Отображение тестового рисунка подтверждено пользователем",
+      "priority": 100,
+      "condition": {
+        "all": [
+          {
+            "all": [
+              {
+                "all": [
+                  {
+                    "all": [
+                      {
+                        "all": [
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "ne",
+                            "value": "failed"
+                          },
+                          {
+                            "any": [
+                              {
+                                "fact_id": "machine_stage",
+                                "op": "ne",
+                                "value": "completed"
+                              },
+                              {
+                                "fact_id": "machine_ok",
+                                "op": "ne",
+                                "value": false
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "fact_id": "machine_stage",
+                        "op": "ne",
+                        "value": "rejected"
+                      },
+                      {
+                        "all": [
+                          {
+                            "fact_id": "boot_matches",
+                            "op": "ne",
+                            "value": false
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "ne",
+                            "value": "interrupted"
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "ne",
+                            "value": "uncertain"
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "ne",
+                            "value": "early_end"
+                          },
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "ne",
+                            "value": "cancelled"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "reason_known",
+                    "op": "eq",
+                    "value": true
+                  },
+                  {
+                    "any": [
+                      {
+                        "fact_id": "source_kind",
+                        "op": "eq",
+                        "value": "live"
+                      },
+                      {
+                        "fact_id": "source_kind",
+                        "op": "eq",
+                        "value": "synthetic"
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "boot_matches",
+                    "op": "eq",
+                    "value": true
+                  }
+                ]
+              },
+              {
+                "fact_id": "machine_stage",
+                "op": "eq",
+                "value": "completed"
+              },
+              {
+                "fact_id": "machine_ok",
+                "op": "eq",
+                "value": true
+              },
+              {
+                "fact_id": "end_reason",
+                "op": "eq",
+                "value": "answered"
+              }
+            ]
+          },
+          {
+            "fact_id": "module",
+            "op": "eq",
+            "value": "oled"
+          },
+          {
+            "fact_id": "oled_transfer",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "fact_id": "oled_restored",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "fact_id": "human",
+            "op": "eq",
+            "value": "yes"
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "module_verdict",
+          "value": "oled_seen"
+        }
+      ],
+      "explanation": "Подтверждение относится только к выбранному рисунку и ответу человека, не всей исправности OLED",
+      "provenance": "Проектное решение STEP11 A5; подтвержденные machine/human/workflow выбранного request/boot; без физической калибровки"
+    },
+    {
+      "id": "MOD-08",
+      "title": "Передача выполнена, ожидаемое изображение пользователь не подтвердил",
+      "priority": 100,
+      "condition": {
+        "all": [
+          {
+            "all": [
+              {
+                "all": [
+                  {
+                    "all": [
+                      {
+                        "all": [
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "ne",
+                            "value": "failed"
+                          },
+                          {
+                            "any": [
+                              {
+                                "fact_id": "machine_stage",
+                                "op": "ne",
+                                "value": "completed"
+                              },
+                              {
+                                "fact_id": "machine_ok",
+                                "op": "ne",
+                                "value": false
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "fact_id": "machine_stage",
+                        "op": "ne",
+                        "value": "rejected"
+                      },
+                      {
+                        "all": [
+                          {
+                            "fact_id": "boot_matches",
+                            "op": "ne",
+                            "value": false
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "ne",
+                            "value": "interrupted"
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "ne",
+                            "value": "uncertain"
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "ne",
+                            "value": "early_end"
+                          },
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "ne",
+                            "value": "cancelled"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "reason_known",
+                    "op": "eq",
+                    "value": true
+                  },
+                  {
+                    "any": [
+                      {
+                        "fact_id": "source_kind",
+                        "op": "eq",
+                        "value": "live"
+                      },
+                      {
+                        "fact_id": "source_kind",
+                        "op": "eq",
+                        "value": "synthetic"
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "boot_matches",
+                    "op": "eq",
+                    "value": true
+                  }
+                ]
+              },
+              {
+                "fact_id": "machine_stage",
+                "op": "eq",
+                "value": "completed"
+              },
+              {
+                "fact_id": "machine_ok",
+                "op": "eq",
+                "value": true
+              },
+              {
+                "fact_id": "end_reason",
+                "op": "eq",
+                "value": "answered"
+              }
+            ]
+          },
+          {
+            "fact_id": "module",
+            "op": "eq",
+            "value": "oled"
+          },
+          {
+            "fact_id": "oled_transfer",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "fact_id": "oled_restored",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "fact_id": "human",
+            "op": "eq",
+            "value": "no"
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "module_verdict",
+          "value": "oled_not_seen"
+        }
+      ],
+      "explanation": "Подтверждение относится только к выбранному рисунку и ответу человека, не всей исправности OLED",
+      "provenance": "Проектное решение STEP11 A5; подтвержденные machine/human/workflow выбранного request/boot; без физической калибровки"
+    },
+    {
+      "id": "MOD-09",
+      "title": "Программный импульс и слышимый отклик подтверждены в пределах теста",
+      "priority": 100,
+      "condition": {
+        "all": [
+          {
+            "all": [
+              {
+                "all": [
+                  {
+                    "all": [
+                      {
+                        "all": [
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "ne",
+                            "value": "failed"
+                          },
+                          {
+                            "any": [
+                              {
+                                "fact_id": "machine_stage",
+                                "op": "ne",
+                                "value": "completed"
+                              },
+                              {
+                                "fact_id": "machine_ok",
+                                "op": "ne",
+                                "value": false
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "fact_id": "machine_stage",
+                        "op": "ne",
+                        "value": "rejected"
+                      },
+                      {
+                        "all": [
+                          {
+                            "fact_id": "boot_matches",
+                            "op": "ne",
+                            "value": false
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "ne",
+                            "value": "interrupted"
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "ne",
+                            "value": "uncertain"
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "ne",
+                            "value": "early_end"
+                          },
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "ne",
+                            "value": "cancelled"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "reason_known",
+                    "op": "eq",
+                    "value": true
+                  },
+                  {
+                    "any": [
+                      {
+                        "fact_id": "source_kind",
+                        "op": "eq",
+                        "value": "live"
+                      },
+                      {
+                        "fact_id": "source_kind",
+                        "op": "eq",
+                        "value": "synthetic"
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "boot_matches",
+                    "op": "eq",
+                    "value": true
+                  }
+                ]
+              },
+              {
+                "fact_id": "machine_stage",
+                "op": "eq",
+                "value": "completed"
+              },
+              {
+                "fact_id": "machine_ok",
+                "op": "eq",
+                "value": true
+              },
+              {
+                "fact_id": "end_reason",
+                "op": "eq",
+                "value": "answered"
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "fact_id": "module",
+                "op": "eq",
+                "value": "relay_1"
+              },
+              {
+                "fact_id": "module",
+                "op": "eq",
+                "value": "relay_2"
+              }
+            ]
+          },
+          {
+            "fact_id": "relay_return",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "fact_id": "human",
+            "op": "eq",
+            "value": "yes"
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "module_verdict",
+          "value": "relay_heard"
+        }
+      ],
+      "explanation": "Контакты и нагрузка не измерены; 900 мс являются программным интервалом",
+      "provenance": "Проектное решение STEP11 A5; подтвержденные machine/human/workflow выбранного request/boot; без физической калибровки"
+    },
+    {
+      "id": "MOD-10",
+      "title": "Программный импульс завершен, щелчок не подтвержден",
+      "priority": 100,
+      "condition": {
+        "all": [
+          {
+            "all": [
+              {
+                "all": [
+                  {
+                    "all": [
+                      {
+                        "all": [
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "ne",
+                            "value": "failed"
+                          },
+                          {
+                            "any": [
+                              {
+                                "fact_id": "machine_stage",
+                                "op": "ne",
+                                "value": "completed"
+                              },
+                              {
+                                "fact_id": "machine_ok",
+                                "op": "ne",
+                                "value": false
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "fact_id": "machine_stage",
+                        "op": "ne",
+                        "value": "rejected"
+                      },
+                      {
+                        "all": [
+                          {
+                            "fact_id": "boot_matches",
+                            "op": "ne",
+                            "value": false
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "ne",
+                            "value": "interrupted"
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "ne",
+                            "value": "uncertain"
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "ne",
+                            "value": "early_end"
+                          },
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "ne",
+                            "value": "cancelled"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "reason_known",
+                    "op": "eq",
+                    "value": true
+                  },
+                  {
+                    "any": [
+                      {
+                        "fact_id": "source_kind",
+                        "op": "eq",
+                        "value": "live"
+                      },
+                      {
+                        "fact_id": "source_kind",
+                        "op": "eq",
+                        "value": "synthetic"
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "boot_matches",
+                    "op": "eq",
+                    "value": true
+                  }
+                ]
+              },
+              {
+                "fact_id": "machine_stage",
+                "op": "eq",
+                "value": "completed"
+              },
+              {
+                "fact_id": "machine_ok",
+                "op": "eq",
+                "value": true
+              },
+              {
+                "fact_id": "end_reason",
+                "op": "eq",
+                "value": "answered"
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "fact_id": "module",
+                "op": "eq",
+                "value": "relay_1"
+              },
+              {
+                "fact_id": "module",
+                "op": "eq",
+                "value": "relay_2"
+              }
+            ]
+          },
+          {
+            "fact_id": "relay_return",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "fact_id": "human",
+            "op": "eq",
+            "value": "no"
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "module_verdict",
+          "value": "relay_not_heard"
+        }
+      ],
+      "explanation": "Контакты и нагрузка не измерены; 900 мс являются программным интервалом",
+      "provenance": "Проектное решение STEP11 A5; подтвержденные machine/human/workflow выбранного request/boot; без физической калибровки"
+    },
+    {
+      "id": "MOD-11",
+      "title": "Реакция входа наблюдалась в этом окне",
+      "priority": 100,
+      "condition": {
+        "all": [
+          {
+            "all": [
+              {
+                "all": [
+                  {
+                    "all": [
+                      {
+                        "all": [
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "ne",
+                            "value": "failed"
+                          },
+                          {
+                            "any": [
+                              {
+                                "fact_id": "machine_stage",
+                                "op": "ne",
+                                "value": "completed"
+                              },
+                              {
+                                "fact_id": "machine_ok",
+                                "op": "ne",
+                                "value": false
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "fact_id": "machine_stage",
+                        "op": "ne",
+                        "value": "rejected"
+                      },
+                      {
+                        "all": [
+                          {
+                            "fact_id": "boot_matches",
+                            "op": "ne",
+                            "value": false
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "ne",
+                            "value": "interrupted"
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "ne",
+                            "value": "uncertain"
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "ne",
+                            "value": "early_end"
+                          },
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "ne",
+                            "value": "cancelled"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "reason_known",
+                    "op": "eq",
+                    "value": true
+                  },
+                  {
+                    "any": [
+                      {
+                        "fact_id": "source_kind",
+                        "op": "eq",
+                        "value": "live"
+                      },
+                      {
+                        "fact_id": "source_kind",
+                        "op": "eq",
+                        "value": "synthetic"
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "boot_matches",
+                    "op": "eq",
+                    "value": true
+                  }
+                ]
+              },
+              {
+                "fact_id": "machine_stage",
+                "op": "eq",
+                "value": "completed"
+              },
+              {
+                "fact_id": "machine_ok",
+                "op": "eq",
+                "value": true
+              },
+              {
+                "fact_id": "end_reason",
+                "op": "eq",
+                "value": "answered"
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "fact_id": "module",
+                "op": "eq",
+                "value": "light"
+              },
+              {
+                "fact_id": "module",
+                "op": "eq",
+                "value": "ir"
+              },
+              {
+                "fact_id": "module",
+                "op": "eq",
+                "value": "pir"
+              }
+            ]
+          },
+          {
+            "fact_id": "module",
+            "op": "ne",
+            "value": "pir"
+          },
+          {
+            "fact_id": "has_transitions",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "fact_id": "human",
+            "op": "eq",
+            "value": "yes"
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "module_verdict",
+          "value": "gpio_observed"
+        }
+      ],
+      "explanation": "Реакция входа наблюдалась в этом окне",
+      "provenance": "Проектное решение STEP11 A5; подтвержденные machine/human/workflow выбранного request/boot; без физической калибровки"
+    },
+    {
+      "id": "MOD-12",
+      "title": "Реакция входа наблюдалась в этом окне; питание отдельно не подтверждено",
+      "priority": 100,
+      "condition": {
+        "all": [
+          {
+            "all": [
+              {
+                "all": [
+                  {
+                    "all": [
+                      {
+                        "all": [
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "ne",
+                            "value": "failed"
+                          },
+                          {
+                            "any": [
+                              {
+                                "fact_id": "machine_stage",
+                                "op": "ne",
+                                "value": "completed"
+                              },
+                              {
+                                "fact_id": "machine_ok",
+                                "op": "ne",
+                                "value": false
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "fact_id": "machine_stage",
+                        "op": "ne",
+                        "value": "rejected"
+                      },
+                      {
+                        "all": [
+                          {
+                            "fact_id": "boot_matches",
+                            "op": "ne",
+                            "value": false
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "ne",
+                            "value": "interrupted"
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "ne",
+                            "value": "uncertain"
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "ne",
+                            "value": "early_end"
+                          },
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "ne",
+                            "value": "cancelled"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "reason_known",
+                    "op": "eq",
+                    "value": true
+                  },
+                  {
+                    "any": [
+                      {
+                        "fact_id": "source_kind",
+                        "op": "eq",
+                        "value": "live"
+                      },
+                      {
+                        "fact_id": "source_kind",
+                        "op": "eq",
+                        "value": "synthetic"
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "boot_matches",
+                    "op": "eq",
+                    "value": true
+                  }
+                ]
+              },
+              {
+                "fact_id": "machine_stage",
+                "op": "eq",
+                "value": "completed"
+              },
+              {
+                "fact_id": "machine_ok",
+                "op": "eq",
+                "value": true
+              },
+              {
+                "fact_id": "end_reason",
+                "op": "eq",
+                "value": "answered"
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "fact_id": "module",
+                "op": "eq",
+                "value": "light"
+              },
+              {
+                "fact_id": "module",
+                "op": "eq",
+                "value": "ir"
+              },
+              {
+                "fact_id": "module",
+                "op": "eq",
+                "value": "pir"
+              }
+            ]
+          },
+          {
+            "fact_id": "module",
+            "op": "eq",
+            "value": "pir"
+          },
+          {
+            "fact_id": "has_transitions",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "fact_id": "human",
+            "op": "eq",
+            "value": "yes"
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "module_verdict",
+          "value": "pir_observed"
+        }
+      ],
+      "explanation": "Реакция входа наблюдалась в этом окне; питание отдельно не подтверждено",
+      "provenance": "Проектное решение STEP11 A5; подтвержденные machine/human/workflow выбранного request/boot; без физической калибровки"
+    },
+    {
+      "id": "MOD-13",
+      "title": "В окне реакция не зарегистрирована и не подтверждена",
+      "priority": 100,
+      "condition": {
+        "all": [
+          {
+            "all": [
+              {
+                "all": [
+                  {
+                    "all": [
+                      {
+                        "all": [
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "ne",
+                            "value": "failed"
+                          },
+                          {
+                            "any": [
+                              {
+                                "fact_id": "machine_stage",
+                                "op": "ne",
+                                "value": "completed"
+                              },
+                              {
+                                "fact_id": "machine_ok",
+                                "op": "ne",
+                                "value": false
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "fact_id": "machine_stage",
+                        "op": "ne",
+                        "value": "rejected"
+                      },
+                      {
+                        "all": [
+                          {
+                            "fact_id": "boot_matches",
+                            "op": "ne",
+                            "value": false
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "ne",
+                            "value": "interrupted"
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "ne",
+                            "value": "uncertain"
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "ne",
+                            "value": "early_end"
+                          },
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "ne",
+                            "value": "cancelled"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "reason_known",
+                    "op": "eq",
+                    "value": true
+                  },
+                  {
+                    "any": [
+                      {
+                        "fact_id": "source_kind",
+                        "op": "eq",
+                        "value": "live"
+                      },
+                      {
+                        "fact_id": "source_kind",
+                        "op": "eq",
+                        "value": "synthetic"
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "boot_matches",
+                    "op": "eq",
+                    "value": true
+                  }
+                ]
+              },
+              {
+                "fact_id": "machine_stage",
+                "op": "eq",
+                "value": "completed"
+              },
+              {
+                "fact_id": "machine_ok",
+                "op": "eq",
+                "value": true
+              },
+              {
+                "fact_id": "end_reason",
+                "op": "eq",
+                "value": "answered"
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "fact_id": "module",
+                "op": "eq",
+                "value": "light"
+              },
+              {
+                "fact_id": "module",
+                "op": "eq",
+                "value": "ir"
+              },
+              {
+                "fact_id": "module",
+                "op": "eq",
+                "value": "pir"
+              }
+            ]
+          },
+          {
+            "fact_id": "has_transitions",
+            "op": "eq",
+            "value": false
+          },
+          {
+            "fact_id": "human",
+            "op": "eq",
+            "value": "no"
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "module_verdict",
+          "value": "gpio_no_reaction"
+        }
+      ],
+      "explanation": "Ноль переходов не является диагнозом поломки; для PIR питание отдельно не подтверждено",
+      "provenance": "Проектное решение STEP11 A5; подтвержденные machine/human/workflow выбранного request/boot; без физической калибровки"
+    },
+    {
+      "id": "MOD-14",
+      "title": "Наблюдение пользователя и зарегистрированный сигнал расходятся; нужна повторная проверка",
+      "priority": 100,
+      "condition": {
+        "all": [
+          {
+            "all": [
+              {
+                "all": [
+                  {
+                    "all": [
+                      {
+                        "all": [
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "ne",
+                            "value": "failed"
+                          },
+                          {
+                            "any": [
+                              {
+                                "fact_id": "machine_stage",
+                                "op": "ne",
+                                "value": "completed"
+                              },
+                              {
+                                "fact_id": "machine_ok",
+                                "op": "ne",
+                                "value": false
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "fact_id": "machine_stage",
+                        "op": "ne",
+                        "value": "rejected"
+                      },
+                      {
+                        "all": [
+                          {
+                            "fact_id": "boot_matches",
+                            "op": "ne",
+                            "value": false
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "ne",
+                            "value": "interrupted"
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "ne",
+                            "value": "uncertain"
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "ne",
+                            "value": "early_end"
+                          },
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "ne",
+                            "value": "cancelled"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "reason_known",
+                    "op": "eq",
+                    "value": true
+                  },
+                  {
+                    "any": [
+                      {
+                        "fact_id": "source_kind",
+                        "op": "eq",
+                        "value": "live"
+                      },
+                      {
+                        "fact_id": "source_kind",
+                        "op": "eq",
+                        "value": "synthetic"
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "boot_matches",
+                    "op": "eq",
+                    "value": true
+                  }
+                ]
+              },
+              {
+                "fact_id": "machine_stage",
+                "op": "eq",
+                "value": "completed"
+              },
+              {
+                "fact_id": "machine_ok",
+                "op": "eq",
+                "value": true
+              },
+              {
+                "fact_id": "end_reason",
+                "op": "eq",
+                "value": "answered"
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "fact_id": "module",
+                "op": "eq",
+                "value": "light"
+              },
+              {
+                "fact_id": "module",
+                "op": "eq",
+                "value": "ir"
+              },
+              {
+                "fact_id": "module",
+                "op": "eq",
+                "value": "pir"
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "all": [
+                  {
+                    "fact_id": "has_transitions",
+                    "op": "eq",
+                    "value": false
+                  },
+                  {
+                    "fact_id": "human",
+                    "op": "eq",
+                    "value": "yes"
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "fact_id": "has_transitions",
+                    "op": "eq",
+                    "value": true
+                  },
+                  {
+                    "fact_id": "human",
+                    "op": "eq",
+                    "value": "no"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "module_verdict",
+          "value": "mismatch"
+        }
+      ],
+      "explanation": "Наблюдение пользователя и зарегистрированный сигнал расходятся; нужна повторная проверка",
+      "provenance": "Проектное решение STEP11 A5; подтвержденные machine/human/workflow выбранного request/boot; без физической калибровки"
+    },
+    {
+      "id": "MOD-15",
+      "title": "Метрики получены",
+      "priority": 100,
+      "condition": {
+        "all": [
+          {
+            "all": [
+              {
+                "all": [
+                  {
+                    "all": [
+                      {
+                        "fact_id": "machine_stage",
+                        "op": "ne",
+                        "value": "failed"
+                      },
+                      {
+                        "any": [
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "ne",
+                            "value": "completed"
+                          },
+                          {
+                            "fact_id": "machine_ok",
+                            "op": "ne",
+                            "value": false
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "machine_stage",
+                    "op": "ne",
+                    "value": "rejected"
+                  },
+                  {
+                    "all": [
+                      {
+                        "fact_id": "boot_matches",
+                        "op": "ne",
+                        "value": false
+                      },
+                      {
+                        "fact_id": "end_reason",
+                        "op": "ne",
+                        "value": "interrupted"
+                      },
+                      {
+                        "fact_id": "end_reason",
+                        "op": "ne",
+                        "value": "uncertain"
+                      },
+                      {
+                        "fact_id": "end_reason",
+                        "op": "ne",
+                        "value": "early_end"
+                      },
+                      {
+                        "fact_id": "machine_stage",
+                        "op": "ne",
+                        "value": "cancelled"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "fact_id": "reason_known",
+                "op": "eq",
+                "value": true
+              },
+              {
+                "fact_id": "boot_matches",
+                "op": "eq",
+                "value": true
+              }
+            ]
+          },
+          {
+            "fact_id": "machine_stage",
+            "op": "eq",
+            "value": "completed"
+          },
+          {
+            "fact_id": "machine_ok",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "fact_id": "human_required",
+            "op": "eq",
+            "value": false
+          },
+          {
+            "fact_id": "end_reason",
+            "op": "eq",
+            "value": "machine"
+          },
+          {
+            "fact_id": "module",
+            "op": "eq",
+            "value": "esp32"
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "module_verdict",
+          "value": "metrics"
+        }
+      ],
+      "explanation": "Узкое заключение текущей операции, не сертификация всего модуля",
+      "provenance": "Проектное решение STEP11 A5; подтвержденные machine/human/workflow выбранного request/boot; без физической калибровки"
+    },
+    {
+      "id": "MOD-16",
+      "title": "Новое чтение получено",
+      "priority": 100,
+      "condition": {
+        "all": [
+          {
+            "all": [
+              {
+                "all": [
+                  {
+                    "all": [
+                      {
+                        "fact_id": "machine_stage",
+                        "op": "ne",
+                        "value": "failed"
+                      },
+                      {
+                        "any": [
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "ne",
+                            "value": "completed"
+                          },
+                          {
+                            "fact_id": "machine_ok",
+                            "op": "ne",
+                            "value": false
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "machine_stage",
+                    "op": "ne",
+                    "value": "rejected"
+                  },
+                  {
+                    "all": [
+                      {
+                        "fact_id": "boot_matches",
+                        "op": "ne",
+                        "value": false
+                      },
+                      {
+                        "fact_id": "end_reason",
+                        "op": "ne",
+                        "value": "interrupted"
+                      },
+                      {
+                        "fact_id": "end_reason",
+                        "op": "ne",
+                        "value": "uncertain"
+                      },
+                      {
+                        "fact_id": "end_reason",
+                        "op": "ne",
+                        "value": "early_end"
+                      },
+                      {
+                        "fact_id": "machine_stage",
+                        "op": "ne",
+                        "value": "cancelled"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "fact_id": "reason_known",
+                "op": "eq",
+                "value": true
+              },
+              {
+                "fact_id": "boot_matches",
+                "op": "eq",
+                "value": true
+              }
+            ]
+          },
+          {
+            "fact_id": "machine_stage",
+            "op": "eq",
+            "value": "completed"
+          },
+          {
+            "fact_id": "machine_ok",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "fact_id": "human_required",
+            "op": "eq",
+            "value": false
+          },
+          {
+            "fact_id": "end_reason",
+            "op": "eq",
+            "value": "machine"
+          },
+          {
+            "fact_id": "module",
+            "op": "eq",
+            "value": "dht11"
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "module_verdict",
+          "value": "new_read"
+        }
+      ],
+      "explanation": "Узкое заключение текущей операции, не сертификация всего модуля",
+      "provenance": "Проектное решение STEP11 A5; подтвержденные machine/human/workflow выбранного request/boot; без физической калибровки"
+    },
+    {
+      "id": "MOD-17",
+      "title": "Файловый тест завершен, очистка подтверждена",
+      "priority": 100,
+      "condition": {
+        "all": [
+          {
+            "all": [
+              {
+                "all": [
+                  {
+                    "all": [
+                      {
+                        "fact_id": "machine_stage",
+                        "op": "ne",
+                        "value": "failed"
+                      },
+                      {
+                        "any": [
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "ne",
+                            "value": "completed"
+                          },
+                          {
+                            "fact_id": "machine_ok",
+                            "op": "ne",
+                            "value": false
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "machine_stage",
+                    "op": "ne",
+                    "value": "rejected"
+                  },
+                  {
+                    "all": [
+                      {
+                        "fact_id": "boot_matches",
+                        "op": "ne",
+                        "value": false
+                      },
+                      {
+                        "fact_id": "end_reason",
+                        "op": "ne",
+                        "value": "interrupted"
+                      },
+                      {
+                        "fact_id": "end_reason",
+                        "op": "ne",
+                        "value": "uncertain"
+                      },
+                      {
+                        "fact_id": "end_reason",
+                        "op": "ne",
+                        "value": "early_end"
+                      },
+                      {
+                        "fact_id": "machine_stage",
+                        "op": "ne",
+                        "value": "cancelled"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "fact_id": "reason_known",
+                "op": "eq",
+                "value": true
+              },
+              {
+                "fact_id": "boot_matches",
+                "op": "eq",
+                "value": true
+              }
+            ]
+          },
+          {
+            "fact_id": "machine_stage",
+            "op": "eq",
+            "value": "completed"
+          },
+          {
+            "fact_id": "machine_ok",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "fact_id": "human_required",
+            "op": "eq",
+            "value": false
+          },
+          {
+            "fact_id": "end_reason",
+            "op": "eq",
+            "value": "machine"
+          },
+          {
+            "fact_id": "module",
+            "op": "eq",
+            "value": "microsd"
+          },
+          {
+            "fact_id": "sd_pass",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "fact_id": "sd_cleanup",
+            "op": "eq",
+            "value": true
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "module_verdict",
+          "value": "file_test"
+        }
+      ],
+      "explanation": "Узкое заключение текущей операции, не сертификация всего модуля",
+      "provenance": "Проектное решение STEP11 A5; подтвержденные machine/human/workflow выбранного request/boot; без физической калибровки"
+    },
+    {
+      "id": "MOD-18",
+      "title": "Проверка еще не завершена",
+      "priority": 100,
+      "condition": {
+        "all": [
+          {
+            "all": [
+              {
+                "all": [
+                  {
+                    "fact_id": "machine_stage",
+                    "op": "ne",
+                    "value": "failed"
+                  },
+                  {
+                    "any": [
+                      {
+                        "fact_id": "machine_stage",
+                        "op": "ne",
+                        "value": "completed"
+                      },
+                      {
+                        "fact_id": "machine_ok",
+                        "op": "ne",
+                        "value": false
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "fact_id": "machine_stage",
+                "op": "ne",
+                "value": "rejected"
+              },
+              {
+                "all": [
+                  {
+                    "fact_id": "boot_matches",
+                    "op": "ne",
+                    "value": false
+                  },
+                  {
+                    "fact_id": "end_reason",
+                    "op": "ne",
+                    "value": "interrupted"
+                  },
+                  {
+                    "fact_id": "end_reason",
+                    "op": "ne",
+                    "value": "uncertain"
+                  },
+                  {
+                    "fact_id": "end_reason",
+                    "op": "ne",
+                    "value": "early_end"
+                  },
+                  {
+                    "fact_id": "machine_stage",
+                    "op": "ne",
+                    "value": "cancelled"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "fact_id": "end_reason",
+            "op": "eq",
+            "value": "pending"
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "module_verdict",
+          "value": "pending"
+        }
+      ],
+      "explanation": "Проверка еще не завершена",
+      "provenance": "Проектное решение STEP11 A5; подтвержденные machine/human/workflow выбранного request/boot; без физической калибровки"
+    },
+    {
+      "id": "MOD-19",
+      "title": "Недостаточно оснований для заключения",
+      "priority": 100,
+      "condition": {
+        "all": [
+          {
+            "all": [
+              {
+                "fact_id": "machine_stage",
+                "op": "ne",
+                "value": "failed"
+              },
+              {
+                "any": [
+                  {
+                    "fact_id": "machine_stage",
+                    "op": "ne",
+                    "value": "completed"
+                  },
+                  {
+                    "fact_id": "machine_ok",
+                    "op": "ne",
+                    "value": false
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "any": [
+                  {
+                    "fact_id": "machine_stage",
+                    "op": "eq",
+                    "value": "failed"
+                  },
+                  {
+                    "all": [
+                      {
+                        "fact_id": "machine_stage",
+                        "op": "eq",
+                        "value": "completed"
+                      },
+                      {
+                        "fact_id": "machine_ok",
+                        "op": "eq",
+                        "value": false
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "fact_id": "machine_stage",
+                "op": "ne",
+                "value": "rejected"
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "any": [
+                  {
+                    "fact_id": "machine_stage",
+                    "op": "eq",
+                    "value": "failed"
+                  },
+                  {
+                    "all": [
+                      {
+                        "fact_id": "machine_stage",
+                        "op": "eq",
+                        "value": "completed"
+                      },
+                      {
+                        "fact_id": "machine_ok",
+                        "op": "eq",
+                        "value": false
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "fact_id": "machine_stage",
+                "op": "eq",
+                "value": "rejected"
+              },
+              {
+                "all": [
+                  {
+                    "fact_id": "boot_matches",
+                    "op": "ne",
+                    "value": false
+                  },
+                  {
+                    "fact_id": "end_reason",
+                    "op": "ne",
+                    "value": "interrupted"
+                  },
+                  {
+                    "fact_id": "end_reason",
+                    "op": "ne",
+                    "value": "uncertain"
+                  },
+                  {
+                    "fact_id": "end_reason",
+                    "op": "ne",
+                    "value": "early_end"
+                  },
+                  {
+                    "fact_id": "machine_stage",
+                    "op": "ne",
+                    "value": "cancelled"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "any": [
+                  {
+                    "any": [
+                      {
+                        "any": [
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "eq",
+                            "value": "failed"
+                          },
+                          {
+                            "all": [
+                              {
+                                "fact_id": "machine_stage",
+                                "op": "eq",
+                                "value": "completed"
+                              },
+                              {
+                                "fact_id": "machine_ok",
+                                "op": "eq",
+                                "value": false
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "fact_id": "machine_stage",
+                        "op": "eq",
+                        "value": "rejected"
+                      },
+                      {
+                        "any": [
+                          {
+                            "fact_id": "boot_matches",
+                            "op": "eq",
+                            "value": false
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "eq",
+                            "value": "interrupted"
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "eq",
+                            "value": "uncertain"
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "eq",
+                            "value": "early_end"
+                          },
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "eq",
+                            "value": "cancelled"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "reason_known",
+                    "op": "ne",
+                    "value": true
+                  },
+                  {
+                    "all": [
+                      {
+                        "fact_id": "source_kind",
+                        "op": "ne",
+                        "value": "live"
+                      },
+                      {
+                        "fact_id": "source_kind",
+                        "op": "ne",
+                        "value": "synthetic"
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "boot_matches",
+                    "op": "ne",
+                    "value": true
+                  }
+                ]
+              },
+              {
+                "fact_id": "human_required",
+                "op": "ne",
+                "value": true
+              },
+              {
+                "fact_id": "end_reason",
+                "op": "ne",
+                "value": "timeout"
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "any": [
+                  {
+                    "any": [
+                      {
+                        "any": [
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "eq",
+                            "value": "failed"
+                          },
+                          {
+                            "all": [
+                              {
+                                "fact_id": "machine_stage",
+                                "op": "eq",
+                                "value": "completed"
+                              },
+                              {
+                                "fact_id": "machine_ok",
+                                "op": "eq",
+                                "value": false
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "fact_id": "machine_stage",
+                        "op": "eq",
+                        "value": "rejected"
+                      },
+                      {
+                        "any": [
+                          {
+                            "fact_id": "boot_matches",
+                            "op": "eq",
+                            "value": false
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "eq",
+                            "value": "interrupted"
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "eq",
+                            "value": "uncertain"
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "eq",
+                            "value": "early_end"
+                          },
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "eq",
+                            "value": "cancelled"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "reason_known",
+                    "op": "ne",
+                    "value": true
+                  },
+                  {
+                    "all": [
+                      {
+                        "fact_id": "source_kind",
+                        "op": "ne",
+                        "value": "live"
+                      },
+                      {
+                        "fact_id": "source_kind",
+                        "op": "ne",
+                        "value": "synthetic"
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "boot_matches",
+                    "op": "ne",
+                    "value": true
+                  }
+                ]
+              },
+              {
+                "fact_id": "end_reason",
+                "op": "ne",
+                "value": "answered"
+              },
+              {
+                "fact_id": "human",
+                "op": "ne",
+                "value": "skipped"
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "any": [
+                  {
+                    "any": [
+                      {
+                        "any": [
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "eq",
+                            "value": "failed"
+                          },
+                          {
+                            "all": [
+                              {
+                                "fact_id": "machine_stage",
+                                "op": "eq",
+                                "value": "completed"
+                              },
+                              {
+                                "fact_id": "machine_ok",
+                                "op": "eq",
+                                "value": false
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "fact_id": "machine_stage",
+                        "op": "eq",
+                        "value": "rejected"
+                      },
+                      {
+                        "any": [
+                          {
+                            "fact_id": "boot_matches",
+                            "op": "eq",
+                            "value": false
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "eq",
+                            "value": "interrupted"
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "eq",
+                            "value": "uncertain"
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "eq",
+                            "value": "early_end"
+                          },
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "eq",
+                            "value": "cancelled"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "reason_known",
+                    "op": "ne",
+                    "value": true
+                  },
+                  {
+                    "all": [
+                      {
+                        "fact_id": "source_kind",
+                        "op": "ne",
+                        "value": "live"
+                      },
+                      {
+                        "fact_id": "source_kind",
+                        "op": "ne",
+                        "value": "synthetic"
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "boot_matches",
+                    "op": "ne",
+                    "value": true
+                  }
+                ]
+              },
+              {
+                "fact_id": "end_reason",
+                "op": "ne",
+                "value": "answered"
+              },
+              {
+                "fact_id": "human",
+                "op": "ne",
+                "value": "unclear"
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "any": [
+                  {
+                    "any": [
+                      {
+                        "any": [
+                          {
+                            "any": [
+                              {
+                                "fact_id": "machine_stage",
+                                "op": "eq",
+                                "value": "failed"
+                              },
+                              {
+                                "all": [
+                                  {
+                                    "fact_id": "machine_stage",
+                                    "op": "eq",
+                                    "value": "completed"
+                                  },
+                                  {
+                                    "fact_id": "machine_ok",
+                                    "op": "eq",
+                                    "value": false
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "eq",
+                            "value": "rejected"
+                          },
+                          {
+                            "any": [
+                              {
+                                "fact_id": "boot_matches",
+                                "op": "eq",
+                                "value": false
+                              },
+                              {
+                                "fact_id": "end_reason",
+                                "op": "eq",
+                                "value": "interrupted"
+                              },
+                              {
+                                "fact_id": "end_reason",
+                                "op": "eq",
+                                "value": "uncertain"
+                              },
+                              {
+                                "fact_id": "end_reason",
+                                "op": "eq",
+                                "value": "early_end"
+                              },
+                              {
+                                "fact_id": "machine_stage",
+                                "op": "eq",
+                                "value": "cancelled"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "fact_id": "reason_known",
+                        "op": "ne",
+                        "value": true
+                      },
+                      {
+                        "all": [
+                          {
+                            "fact_id": "source_kind",
+                            "op": "ne",
+                            "value": "live"
+                          },
+                          {
+                            "fact_id": "source_kind",
+                            "op": "ne",
+                            "value": "synthetic"
+                          }
+                        ]
+                      },
+                      {
+                        "fact_id": "boot_matches",
+                        "op": "ne",
+                        "value": true
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "machine_stage",
+                    "op": "ne",
+                    "value": "completed"
+                  },
+                  {
+                    "fact_id": "machine_ok",
+                    "op": "ne",
+                    "value": true
+                  },
+                  {
+                    "fact_id": "end_reason",
+                    "op": "ne",
+                    "value": "answered"
+                  }
+                ]
+              },
+              {
+                "fact_id": "module",
+                "op": "ne",
+                "value": "oled"
+              },
+              {
+                "fact_id": "oled_transfer",
+                "op": "ne",
+                "value": true
+              },
+              {
+                "fact_id": "oled_restored",
+                "op": "ne",
+                "value": true
+              },
+              {
+                "fact_id": "human",
+                "op": "ne",
+                "value": "yes"
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "any": [
+                  {
+                    "any": [
+                      {
+                        "any": [
+                          {
+                            "any": [
+                              {
+                                "fact_id": "machine_stage",
+                                "op": "eq",
+                                "value": "failed"
+                              },
+                              {
+                                "all": [
+                                  {
+                                    "fact_id": "machine_stage",
+                                    "op": "eq",
+                                    "value": "completed"
+                                  },
+                                  {
+                                    "fact_id": "machine_ok",
+                                    "op": "eq",
+                                    "value": false
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "eq",
+                            "value": "rejected"
+                          },
+                          {
+                            "any": [
+                              {
+                                "fact_id": "boot_matches",
+                                "op": "eq",
+                                "value": false
+                              },
+                              {
+                                "fact_id": "end_reason",
+                                "op": "eq",
+                                "value": "interrupted"
+                              },
+                              {
+                                "fact_id": "end_reason",
+                                "op": "eq",
+                                "value": "uncertain"
+                              },
+                              {
+                                "fact_id": "end_reason",
+                                "op": "eq",
+                                "value": "early_end"
+                              },
+                              {
+                                "fact_id": "machine_stage",
+                                "op": "eq",
+                                "value": "cancelled"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "fact_id": "reason_known",
+                        "op": "ne",
+                        "value": true
+                      },
+                      {
+                        "all": [
+                          {
+                            "fact_id": "source_kind",
+                            "op": "ne",
+                            "value": "live"
+                          },
+                          {
+                            "fact_id": "source_kind",
+                            "op": "ne",
+                            "value": "synthetic"
+                          }
+                        ]
+                      },
+                      {
+                        "fact_id": "boot_matches",
+                        "op": "ne",
+                        "value": true
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "machine_stage",
+                    "op": "ne",
+                    "value": "completed"
+                  },
+                  {
+                    "fact_id": "machine_ok",
+                    "op": "ne",
+                    "value": true
+                  },
+                  {
+                    "fact_id": "end_reason",
+                    "op": "ne",
+                    "value": "answered"
+                  }
+                ]
+              },
+              {
+                "fact_id": "module",
+                "op": "ne",
+                "value": "oled"
+              },
+              {
+                "fact_id": "oled_transfer",
+                "op": "ne",
+                "value": true
+              },
+              {
+                "fact_id": "oled_restored",
+                "op": "ne",
+                "value": true
+              },
+              {
+                "fact_id": "human",
+                "op": "ne",
+                "value": "no"
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "any": [
+                  {
+                    "any": [
+                      {
+                        "any": [
+                          {
+                            "any": [
+                              {
+                                "fact_id": "machine_stage",
+                                "op": "eq",
+                                "value": "failed"
+                              },
+                              {
+                                "all": [
+                                  {
+                                    "fact_id": "machine_stage",
+                                    "op": "eq",
+                                    "value": "completed"
+                                  },
+                                  {
+                                    "fact_id": "machine_ok",
+                                    "op": "eq",
+                                    "value": false
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "eq",
+                            "value": "rejected"
+                          },
+                          {
+                            "any": [
+                              {
+                                "fact_id": "boot_matches",
+                                "op": "eq",
+                                "value": false
+                              },
+                              {
+                                "fact_id": "end_reason",
+                                "op": "eq",
+                                "value": "interrupted"
+                              },
+                              {
+                                "fact_id": "end_reason",
+                                "op": "eq",
+                                "value": "uncertain"
+                              },
+                              {
+                                "fact_id": "end_reason",
+                                "op": "eq",
+                                "value": "early_end"
+                              },
+                              {
+                                "fact_id": "machine_stage",
+                                "op": "eq",
+                                "value": "cancelled"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "fact_id": "reason_known",
+                        "op": "ne",
+                        "value": true
+                      },
+                      {
+                        "all": [
+                          {
+                            "fact_id": "source_kind",
+                            "op": "ne",
+                            "value": "live"
+                          },
+                          {
+                            "fact_id": "source_kind",
+                            "op": "ne",
+                            "value": "synthetic"
+                          }
+                        ]
+                      },
+                      {
+                        "fact_id": "boot_matches",
+                        "op": "ne",
+                        "value": true
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "machine_stage",
+                    "op": "ne",
+                    "value": "completed"
+                  },
+                  {
+                    "fact_id": "machine_ok",
+                    "op": "ne",
+                    "value": true
+                  },
+                  {
+                    "fact_id": "end_reason",
+                    "op": "ne",
+                    "value": "answered"
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "fact_id": "module",
+                    "op": "ne",
+                    "value": "relay_1"
+                  },
+                  {
+                    "fact_id": "module",
+                    "op": "ne",
+                    "value": "relay_2"
+                  }
+                ]
+              },
+              {
+                "fact_id": "relay_return",
+                "op": "ne",
+                "value": true
+              },
+              {
+                "fact_id": "human",
+                "op": "ne",
+                "value": "yes"
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "any": [
+                  {
+                    "any": [
+                      {
+                        "any": [
+                          {
+                            "any": [
+                              {
+                                "fact_id": "machine_stage",
+                                "op": "eq",
+                                "value": "failed"
+                              },
+                              {
+                                "all": [
+                                  {
+                                    "fact_id": "machine_stage",
+                                    "op": "eq",
+                                    "value": "completed"
+                                  },
+                                  {
+                                    "fact_id": "machine_ok",
+                                    "op": "eq",
+                                    "value": false
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "eq",
+                            "value": "rejected"
+                          },
+                          {
+                            "any": [
+                              {
+                                "fact_id": "boot_matches",
+                                "op": "eq",
+                                "value": false
+                              },
+                              {
+                                "fact_id": "end_reason",
+                                "op": "eq",
+                                "value": "interrupted"
+                              },
+                              {
+                                "fact_id": "end_reason",
+                                "op": "eq",
+                                "value": "uncertain"
+                              },
+                              {
+                                "fact_id": "end_reason",
+                                "op": "eq",
+                                "value": "early_end"
+                              },
+                              {
+                                "fact_id": "machine_stage",
+                                "op": "eq",
+                                "value": "cancelled"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "fact_id": "reason_known",
+                        "op": "ne",
+                        "value": true
+                      },
+                      {
+                        "all": [
+                          {
+                            "fact_id": "source_kind",
+                            "op": "ne",
+                            "value": "live"
+                          },
+                          {
+                            "fact_id": "source_kind",
+                            "op": "ne",
+                            "value": "synthetic"
+                          }
+                        ]
+                      },
+                      {
+                        "fact_id": "boot_matches",
+                        "op": "ne",
+                        "value": true
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "machine_stage",
+                    "op": "ne",
+                    "value": "completed"
+                  },
+                  {
+                    "fact_id": "machine_ok",
+                    "op": "ne",
+                    "value": true
+                  },
+                  {
+                    "fact_id": "end_reason",
+                    "op": "ne",
+                    "value": "answered"
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "fact_id": "module",
+                    "op": "ne",
+                    "value": "relay_1"
+                  },
+                  {
+                    "fact_id": "module",
+                    "op": "ne",
+                    "value": "relay_2"
+                  }
+                ]
+              },
+              {
+                "fact_id": "relay_return",
+                "op": "ne",
+                "value": true
+              },
+              {
+                "fact_id": "human",
+                "op": "ne",
+                "value": "no"
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "any": [
+                  {
+                    "any": [
+                      {
+                        "any": [
+                          {
+                            "any": [
+                              {
+                                "fact_id": "machine_stage",
+                                "op": "eq",
+                                "value": "failed"
+                              },
+                              {
+                                "all": [
+                                  {
+                                    "fact_id": "machine_stage",
+                                    "op": "eq",
+                                    "value": "completed"
+                                  },
+                                  {
+                                    "fact_id": "machine_ok",
+                                    "op": "eq",
+                                    "value": false
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "eq",
+                            "value": "rejected"
+                          },
+                          {
+                            "any": [
+                              {
+                                "fact_id": "boot_matches",
+                                "op": "eq",
+                                "value": false
+                              },
+                              {
+                                "fact_id": "end_reason",
+                                "op": "eq",
+                                "value": "interrupted"
+                              },
+                              {
+                                "fact_id": "end_reason",
+                                "op": "eq",
+                                "value": "uncertain"
+                              },
+                              {
+                                "fact_id": "end_reason",
+                                "op": "eq",
+                                "value": "early_end"
+                              },
+                              {
+                                "fact_id": "machine_stage",
+                                "op": "eq",
+                                "value": "cancelled"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "fact_id": "reason_known",
+                        "op": "ne",
+                        "value": true
+                      },
+                      {
+                        "all": [
+                          {
+                            "fact_id": "source_kind",
+                            "op": "ne",
+                            "value": "live"
+                          },
+                          {
+                            "fact_id": "source_kind",
+                            "op": "ne",
+                            "value": "synthetic"
+                          }
+                        ]
+                      },
+                      {
+                        "fact_id": "boot_matches",
+                        "op": "ne",
+                        "value": true
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "machine_stage",
+                    "op": "ne",
+                    "value": "completed"
+                  },
+                  {
+                    "fact_id": "machine_ok",
+                    "op": "ne",
+                    "value": true
+                  },
+                  {
+                    "fact_id": "end_reason",
+                    "op": "ne",
+                    "value": "answered"
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "fact_id": "module",
+                    "op": "ne",
+                    "value": "light"
+                  },
+                  {
+                    "fact_id": "module",
+                    "op": "ne",
+                    "value": "ir"
+                  },
+                  {
+                    "fact_id": "module",
+                    "op": "ne",
+                    "value": "pir"
+                  }
+                ]
+              },
+              {
+                "fact_id": "module",
+                "op": "eq",
+                "value": "pir"
+              },
+              {
+                "fact_id": "has_transitions",
+                "op": "ne",
+                "value": true
+              },
+              {
+                "fact_id": "human",
+                "op": "ne",
+                "value": "yes"
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "any": [
+                  {
+                    "any": [
+                      {
+                        "any": [
+                          {
+                            "any": [
+                              {
+                                "fact_id": "machine_stage",
+                                "op": "eq",
+                                "value": "failed"
+                              },
+                              {
+                                "all": [
+                                  {
+                                    "fact_id": "machine_stage",
+                                    "op": "eq",
+                                    "value": "completed"
+                                  },
+                                  {
+                                    "fact_id": "machine_ok",
+                                    "op": "eq",
+                                    "value": false
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "eq",
+                            "value": "rejected"
+                          },
+                          {
+                            "any": [
+                              {
+                                "fact_id": "boot_matches",
+                                "op": "eq",
+                                "value": false
+                              },
+                              {
+                                "fact_id": "end_reason",
+                                "op": "eq",
+                                "value": "interrupted"
+                              },
+                              {
+                                "fact_id": "end_reason",
+                                "op": "eq",
+                                "value": "uncertain"
+                              },
+                              {
+                                "fact_id": "end_reason",
+                                "op": "eq",
+                                "value": "early_end"
+                              },
+                              {
+                                "fact_id": "machine_stage",
+                                "op": "eq",
+                                "value": "cancelled"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "fact_id": "reason_known",
+                        "op": "ne",
+                        "value": true
+                      },
+                      {
+                        "all": [
+                          {
+                            "fact_id": "source_kind",
+                            "op": "ne",
+                            "value": "live"
+                          },
+                          {
+                            "fact_id": "source_kind",
+                            "op": "ne",
+                            "value": "synthetic"
+                          }
+                        ]
+                      },
+                      {
+                        "fact_id": "boot_matches",
+                        "op": "ne",
+                        "value": true
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "machine_stage",
+                    "op": "ne",
+                    "value": "completed"
+                  },
+                  {
+                    "fact_id": "machine_ok",
+                    "op": "ne",
+                    "value": true
+                  },
+                  {
+                    "fact_id": "end_reason",
+                    "op": "ne",
+                    "value": "answered"
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "fact_id": "module",
+                    "op": "ne",
+                    "value": "light"
+                  },
+                  {
+                    "fact_id": "module",
+                    "op": "ne",
+                    "value": "ir"
+                  },
+                  {
+                    "fact_id": "module",
+                    "op": "ne",
+                    "value": "pir"
+                  }
+                ]
+              },
+              {
+                "fact_id": "module",
+                "op": "ne",
+                "value": "pir"
+              },
+              {
+                "fact_id": "has_transitions",
+                "op": "ne",
+                "value": true
+              },
+              {
+                "fact_id": "human",
+                "op": "ne",
+                "value": "yes"
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "any": [
+                  {
+                    "any": [
+                      {
+                        "any": [
+                          {
+                            "any": [
+                              {
+                                "fact_id": "machine_stage",
+                                "op": "eq",
+                                "value": "failed"
+                              },
+                              {
+                                "all": [
+                                  {
+                                    "fact_id": "machine_stage",
+                                    "op": "eq",
+                                    "value": "completed"
+                                  },
+                                  {
+                                    "fact_id": "machine_ok",
+                                    "op": "eq",
+                                    "value": false
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "eq",
+                            "value": "rejected"
+                          },
+                          {
+                            "any": [
+                              {
+                                "fact_id": "boot_matches",
+                                "op": "eq",
+                                "value": false
+                              },
+                              {
+                                "fact_id": "end_reason",
+                                "op": "eq",
+                                "value": "interrupted"
+                              },
+                              {
+                                "fact_id": "end_reason",
+                                "op": "eq",
+                                "value": "uncertain"
+                              },
+                              {
+                                "fact_id": "end_reason",
+                                "op": "eq",
+                                "value": "early_end"
+                              },
+                              {
+                                "fact_id": "machine_stage",
+                                "op": "eq",
+                                "value": "cancelled"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "fact_id": "reason_known",
+                        "op": "ne",
+                        "value": true
+                      },
+                      {
+                        "all": [
+                          {
+                            "fact_id": "source_kind",
+                            "op": "ne",
+                            "value": "live"
+                          },
+                          {
+                            "fact_id": "source_kind",
+                            "op": "ne",
+                            "value": "synthetic"
+                          }
+                        ]
+                      },
+                      {
+                        "fact_id": "boot_matches",
+                        "op": "ne",
+                        "value": true
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "machine_stage",
+                    "op": "ne",
+                    "value": "completed"
+                  },
+                  {
+                    "fact_id": "machine_ok",
+                    "op": "ne",
+                    "value": true
+                  },
+                  {
+                    "fact_id": "end_reason",
+                    "op": "ne",
+                    "value": "answered"
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "fact_id": "module",
+                    "op": "ne",
+                    "value": "light"
+                  },
+                  {
+                    "fact_id": "module",
+                    "op": "ne",
+                    "value": "ir"
+                  },
+                  {
+                    "fact_id": "module",
+                    "op": "ne",
+                    "value": "pir"
+                  }
+                ]
+              },
+              {
+                "fact_id": "has_transitions",
+                "op": "ne",
+                "value": false
+              },
+              {
+                "fact_id": "human",
+                "op": "ne",
+                "value": "no"
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "any": [
+                  {
+                    "any": [
+                      {
+                        "any": [
+                          {
+                            "any": [
+                              {
+                                "fact_id": "machine_stage",
+                                "op": "eq",
+                                "value": "failed"
+                              },
+                              {
+                                "all": [
+                                  {
+                                    "fact_id": "machine_stage",
+                                    "op": "eq",
+                                    "value": "completed"
+                                  },
+                                  {
+                                    "fact_id": "machine_ok",
+                                    "op": "eq",
+                                    "value": false
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "eq",
+                            "value": "rejected"
+                          },
+                          {
+                            "any": [
+                              {
+                                "fact_id": "boot_matches",
+                                "op": "eq",
+                                "value": false
+                              },
+                              {
+                                "fact_id": "end_reason",
+                                "op": "eq",
+                                "value": "interrupted"
+                              },
+                              {
+                                "fact_id": "end_reason",
+                                "op": "eq",
+                                "value": "uncertain"
+                              },
+                              {
+                                "fact_id": "end_reason",
+                                "op": "eq",
+                                "value": "early_end"
+                              },
+                              {
+                                "fact_id": "machine_stage",
+                                "op": "eq",
+                                "value": "cancelled"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "fact_id": "reason_known",
+                        "op": "ne",
+                        "value": true
+                      },
+                      {
+                        "all": [
+                          {
+                            "fact_id": "source_kind",
+                            "op": "ne",
+                            "value": "live"
+                          },
+                          {
+                            "fact_id": "source_kind",
+                            "op": "ne",
+                            "value": "synthetic"
+                          }
+                        ]
+                      },
+                      {
+                        "fact_id": "boot_matches",
+                        "op": "ne",
+                        "value": true
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "machine_stage",
+                    "op": "ne",
+                    "value": "completed"
+                  },
+                  {
+                    "fact_id": "machine_ok",
+                    "op": "ne",
+                    "value": true
+                  },
+                  {
+                    "fact_id": "end_reason",
+                    "op": "ne",
+                    "value": "answered"
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "fact_id": "module",
+                    "op": "ne",
+                    "value": "light"
+                  },
+                  {
+                    "fact_id": "module",
+                    "op": "ne",
+                    "value": "ir"
+                  },
+                  {
+                    "fact_id": "module",
+                    "op": "ne",
+                    "value": "pir"
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "any": [
+                      {
+                        "fact_id": "has_transitions",
+                        "op": "ne",
+                        "value": false
+                      },
+                      {
+                        "fact_id": "human",
+                        "op": "ne",
+                        "value": "yes"
+                      }
+                    ]
+                  },
+                  {
+                    "any": [
+                      {
+                        "fact_id": "has_transitions",
+                        "op": "ne",
+                        "value": true
+                      },
+                      {
+                        "fact_id": "human",
+                        "op": "ne",
+                        "value": "no"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "any": [
+                  {
+                    "any": [
+                      {
+                        "any": [
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "eq",
+                            "value": "failed"
+                          },
+                          {
+                            "all": [
+                              {
+                                "fact_id": "machine_stage",
+                                "op": "eq",
+                                "value": "completed"
+                              },
+                              {
+                                "fact_id": "machine_ok",
+                                "op": "eq",
+                                "value": false
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "fact_id": "machine_stage",
+                        "op": "eq",
+                        "value": "rejected"
+                      },
+                      {
+                        "any": [
+                          {
+                            "fact_id": "boot_matches",
+                            "op": "eq",
+                            "value": false
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "eq",
+                            "value": "interrupted"
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "eq",
+                            "value": "uncertain"
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "eq",
+                            "value": "early_end"
+                          },
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "eq",
+                            "value": "cancelled"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "reason_known",
+                    "op": "ne",
+                    "value": true
+                  },
+                  {
+                    "fact_id": "boot_matches",
+                    "op": "ne",
+                    "value": true
+                  }
+                ]
+              },
+              {
+                "fact_id": "machine_stage",
+                "op": "ne",
+                "value": "completed"
+              },
+              {
+                "fact_id": "machine_ok",
+                "op": "ne",
+                "value": true
+              },
+              {
+                "fact_id": "human_required",
+                "op": "ne",
+                "value": false
+              },
+              {
+                "fact_id": "end_reason",
+                "op": "ne",
+                "value": "machine"
+              },
+              {
+                "fact_id": "module",
+                "op": "ne",
+                "value": "esp32"
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "any": [
+                  {
+                    "any": [
+                      {
+                        "any": [
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "eq",
+                            "value": "failed"
+                          },
+                          {
+                            "all": [
+                              {
+                                "fact_id": "machine_stage",
+                                "op": "eq",
+                                "value": "completed"
+                              },
+                              {
+                                "fact_id": "machine_ok",
+                                "op": "eq",
+                                "value": false
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "fact_id": "machine_stage",
+                        "op": "eq",
+                        "value": "rejected"
+                      },
+                      {
+                        "any": [
+                          {
+                            "fact_id": "boot_matches",
+                            "op": "eq",
+                            "value": false
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "eq",
+                            "value": "interrupted"
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "eq",
+                            "value": "uncertain"
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "eq",
+                            "value": "early_end"
+                          },
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "eq",
+                            "value": "cancelled"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "reason_known",
+                    "op": "ne",
+                    "value": true
+                  },
+                  {
+                    "fact_id": "boot_matches",
+                    "op": "ne",
+                    "value": true
+                  }
+                ]
+              },
+              {
+                "fact_id": "machine_stage",
+                "op": "ne",
+                "value": "completed"
+              },
+              {
+                "fact_id": "machine_ok",
+                "op": "ne",
+                "value": true
+              },
+              {
+                "fact_id": "human_required",
+                "op": "ne",
+                "value": false
+              },
+              {
+                "fact_id": "end_reason",
+                "op": "ne",
+                "value": "machine"
+              },
+              {
+                "fact_id": "module",
+                "op": "ne",
+                "value": "dht11"
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "any": [
+                  {
+                    "any": [
+                      {
+                        "any": [
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "eq",
+                            "value": "failed"
+                          },
+                          {
+                            "all": [
+                              {
+                                "fact_id": "machine_stage",
+                                "op": "eq",
+                                "value": "completed"
+                              },
+                              {
+                                "fact_id": "machine_ok",
+                                "op": "eq",
+                                "value": false
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "fact_id": "machine_stage",
+                        "op": "eq",
+                        "value": "rejected"
+                      },
+                      {
+                        "any": [
+                          {
+                            "fact_id": "boot_matches",
+                            "op": "eq",
+                            "value": false
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "eq",
+                            "value": "interrupted"
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "eq",
+                            "value": "uncertain"
+                          },
+                          {
+                            "fact_id": "end_reason",
+                            "op": "eq",
+                            "value": "early_end"
+                          },
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "eq",
+                            "value": "cancelled"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "reason_known",
+                    "op": "ne",
+                    "value": true
+                  },
+                  {
+                    "fact_id": "boot_matches",
+                    "op": "ne",
+                    "value": true
+                  }
+                ]
+              },
+              {
+                "fact_id": "machine_stage",
+                "op": "ne",
+                "value": "completed"
+              },
+              {
+                "fact_id": "machine_ok",
+                "op": "ne",
+                "value": true
+              },
+              {
+                "fact_id": "human_required",
+                "op": "ne",
+                "value": false
+              },
+              {
+                "fact_id": "end_reason",
+                "op": "ne",
+                "value": "machine"
+              },
+              {
+                "fact_id": "module",
+                "op": "ne",
+                "value": "microsd"
+              },
+              {
+                "fact_id": "sd_pass",
+                "op": "ne",
+                "value": true
+              },
+              {
+                "fact_id": "sd_cleanup",
+                "op": "ne",
+                "value": true
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "any": [
+                  {
+                    "any": [
+                      {
+                        "fact_id": "machine_stage",
+                        "op": "eq",
+                        "value": "failed"
+                      },
+                      {
+                        "all": [
+                          {
+                            "fact_id": "machine_stage",
+                            "op": "eq",
+                            "value": "completed"
+                          },
+                          {
+                            "fact_id": "machine_ok",
+                            "op": "eq",
+                            "value": false
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "fact_id": "machine_stage",
+                    "op": "eq",
+                    "value": "rejected"
+                  },
+                  {
+                    "any": [
+                      {
+                        "fact_id": "boot_matches",
+                        "op": "eq",
+                        "value": false
+                      },
+                      {
+                        "fact_id": "end_reason",
+                        "op": "eq",
+                        "value": "interrupted"
+                      },
+                      {
+                        "fact_id": "end_reason",
+                        "op": "eq",
+                        "value": "uncertain"
+                      },
+                      {
+                        "fact_id": "end_reason",
+                        "op": "eq",
+                        "value": "early_end"
+                      },
+                      {
+                        "fact_id": "machine_stage",
+                        "op": "eq",
+                        "value": "cancelled"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "fact_id": "end_reason",
+                "op": "ne",
+                "value": "pending"
+              }
+            ]
+          }
+        ]
+      },
+      "conclusions": [
+        {
+          "fact_id": "module_verdict",
+          "value": "insufficient"
+        }
+      ],
+      "explanation": "Недостаточно оснований для заключения",
+      "provenance": "Проектное решение STEP11 A5; подтвержденные machine/human/workflow выбранного request/boot; без физической калибровки"
+    }
+  ],
+  "question_order": [
+    "module",
+    "operation",
+    "source_kind",
+    "boot_matches",
+    "machine_stage",
+    "reason_known",
+    "machine_ok",
+    "human_required",
+    "human",
+    "end_reason",
+    "oled_transfer",
+    "oled_restored",
+    "relay_return",
+    "has_transitions",
+    "sd_pass",
+    "sd_cleanup"
+  ],
+  "outcomes": [
+    {
+      "value": "machine_error",
+      "kind": "refusal",
+      "title": "Ошибка машинной проверки",
+      "description": "Подтверждена ошибка операции; ответ человека ее не отменяет, физическая причина может быть неизвестна"
+    },
+    {
+      "value": "not_executed",
+      "kind": "refusal",
+      "title": "Проверка не выполнена",
+      "description": "Запрос отклонен до исполнения; это не диагноз поломки"
+    },
+    {
+      "value": "interrupted",
+      "kind": "clarification",
+      "title": "Проверка прервана / исход неизвестен",
+      "description": "Проверка прервана / исход неизвестен"
+    },
+    {
+      "value": "no_answer",
+      "kind": "clarification",
+      "title": "Не подтверждено: ответ не получен",
+      "description": "Не подтверждено: ответ не получен"
+    },
+    {
+      "value": "skipped",
+      "kind": "clarification",
+      "title": "Пользователь не проверял",
+      "description": "Пользователь не проверял"
+    },
+    {
+      "value": "unclear",
+      "kind": "clarification",
+      "title": "Нужна повторная проверка: ответ неясен",
+      "description": "Нужна повторная проверка: ответ неясен"
+    },
+    {
+      "value": "oled_seen",
+      "kind": "strategy",
+      "title": "Отображение тестового рисунка подтверждено пользователем",
+      "description": "Подтверждение относится только к выбранному рисунку и ответу человека, не всей исправности OLED"
+    },
+    {
+      "value": "oled_not_seen",
+      "kind": "clarification",
+      "title": "Передача выполнена, ожидаемое изображение пользователь не подтвердил",
+      "description": "Подтверждение относится только к выбранному рисунку и ответу человека, не всей исправности OLED"
+    },
+    {
+      "value": "relay_heard",
+      "kind": "strategy",
+      "title": "Программный импульс и слышимый отклик подтверждены в пределах теста",
+      "description": "Контакты и нагрузка не измерены; 900 мс являются программным интервалом"
+    },
+    {
+      "value": "relay_not_heard",
+      "kind": "clarification",
+      "title": "Программный импульс завершен, щелчок не подтвержден",
+      "description": "Контакты и нагрузка не измерены; 900 мс являются программным интервалом"
+    },
+    {
+      "value": "gpio_observed",
+      "kind": "strategy",
+      "title": "Реакция входа наблюдалась в этом окне",
+      "description": "Реакция входа наблюдалась в этом окне"
+    },
+    {
+      "value": "pir_observed",
+      "kind": "strategy",
+      "title": "Реакция входа наблюдалась в этом окне; питание отдельно не подтверждено",
+      "description": "Реакция входа наблюдалась в этом окне; питание отдельно не подтверждено"
+    },
+    {
+      "value": "gpio_no_reaction",
+      "kind": "clarification",
+      "title": "В окне реакция не зарегистрирована и не подтверждена",
+      "description": "Ноль переходов не является диагнозом поломки; для PIR питание отдельно не подтверждено"
+    },
+    {
+      "value": "mismatch",
+      "kind": "clarification",
+      "title": "Наблюдение пользователя и зарегистрированный сигнал расходятся; нужна повторная проверка",
+      "description": "Наблюдение пользователя и зарегистрированный сигнал расходятся; нужна повторная проверка"
+    },
+    {
+      "value": "metrics",
+      "kind": "strategy",
+      "title": "Метрики получены",
+      "description": "Узкое заключение текущей операции, не сертификация всего модуля"
+    },
+    {
+      "value": "new_read",
+      "kind": "strategy",
+      "title": "Новое чтение получено",
+      "description": "Узкое заключение текущей операции, не сертификация всего модуля"
+    },
+    {
+      "value": "file_test",
+      "kind": "strategy",
+      "title": "Файловый тест завершен, очистка подтверждена",
+      "description": "Узкое заключение текущей операции, не сертификация всего модуля"
+    },
+    {
+      "value": "pending",
+      "kind": "clarification",
+      "title": "Проверка еще не завершена",
+      "description": "Проверка еще не завершена"
+    },
+    {
+      "value": "insufficient",
+      "kind": "clarification",
+      "title": "Недостаточно оснований для заключения",
+      "description": "Недостаточно оснований для заключения"
+    }
+  ]
+}

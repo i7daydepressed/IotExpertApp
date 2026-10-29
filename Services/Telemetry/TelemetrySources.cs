@@ -8,7 +8,11 @@ public interface ITelemetryByteSource : IDisposable {
     int Read(byte[] buffer);
 }
 
-public sealed class SerialTelemetrySource : ITelemetryByteSource {
+public interface ITelemetryCommandSource : ITelemetryByteSource {
+    void Write(byte[] bytes);
+}
+
+public sealed class SerialTelemetrySource : ITelemetryCommandSource {
     private readonly SerialPort port;
 
     public SerialTelemetrySource(string name) {
@@ -16,13 +20,15 @@ public sealed class SerialTelemetrySource : ITelemetryByteSource {
             Handshake = Handshake.None,
             DtrEnable = false,
             RtsEnable = false,
-            ReadTimeout = 250
+            ReadTimeout = 250,
+            WriteTimeout = 250
         };
         try { port.Open(); }
         catch { port.Dispose(); throw; }
     }
 
     public int Read(byte[] buffer) => port.Read(buffer, 0, buffer.Length);
+    public void Write(byte[] bytes) => port.Write(bytes, 0, bytes.Length);
     public void Dispose() => port.Dispose();
 }
 
