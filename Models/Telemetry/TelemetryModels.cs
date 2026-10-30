@@ -30,6 +30,7 @@ public sealed record ReceiverState(
     string LastMessage, ReceivedSnapshot? Snapshot, long TemporalRejected,
     bool Running, bool Completed, bool ReplayPaused, string Playback, string Capture) {
     public bool IsSerial { get; init; }
+    public long ContextId { get; init; }
     public long TestEvents { get; init; }
     public long TestErrors { get; init; }
 }

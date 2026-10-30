@@ -79,6 +79,8 @@ public static class LiveAssessmentChecks {
                 Path.Combine(AppContext.BaseDirectory, "Knowledge", "lr1-strategies.json"));
             if (json.ContainsKey("module_check_knowledge")) json["module_check_knowledge"] = Path.GetRelativePath(temporary.FullName,
                 Path.Combine(AppContext.BaseDirectory, "DeviceProfiles", "esp32-module-checks.rules.json"));
+            if (json["evidence_policy"] is JsonObject policy) policy["knowledge"] = Path.GetRelativePath(temporary.FullName,
+                Path.Combine(AppContext.BaseDirectory,"DeviceProfiles","esp32-evidence.rules.json"));
             json["version"] = "synthetic-reload-2";
             string alternative = Path.Combine(temporary.FullName, "profile.json");
             File.WriteAllText(alternative, json.ToJsonString());

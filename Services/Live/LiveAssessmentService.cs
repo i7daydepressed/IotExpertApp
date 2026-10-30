@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Globalization;
 using System.Linq;
 using IotExpertApp.Models.Knowledge;
+using IotExpertApp.Models.Checks;
 using IotExpertApp.Models.Live;
 using IotExpertApp.Models.Telemetry;
 using IotExpertApp.Services.Knowledge;
@@ -23,7 +24,7 @@ public sealed class LiveAssessmentService {
     // берем один принятый снимок и закрепленный профиль; для live добавляем монотонный возраст хоста к возрасту источников
     // нормализованные статусы идут в OBS-правила, их доказанный итог через внешний mapping задает входы общей БЗ ЛР1
     // оба расчета создаются заново и сохраняют происхождение; Stop и просроченный пакет возвращают состояние без рекомендации
-    public LiveAssessment Assess(DeviceProfile profile, ReceiverState state, TimeSpan packetAge) {
+    public LiveAssessment Assess(DeviceProfile profile, ReceiverState state, TimeSpan packetAge, bool includeChecks = false, ImmutableArray<GuidedCheckResult> checks = default) {
         ReceivedSnapshot? snapshot = state.Snapshot;
         string mode = state.IsSerial ? "Живой поток" : "Запись" + (state.ReplayPaused ? ", пауза" : state.Completed ? ", конец файла" : "");
         string context = mode + "\nПрофиль " + profile.Id + " / " + profile.Version + " / SHA256 " + profile.Sha256
@@ -38,37 +39,23 @@ public sealed class LiveAssessmentService {
         if (!state.Running && !state.Completed) return Empty("Источник остановлен", "Текущая рекомендация снята; прежнее объяснение доступно отдельно");
         if (Expired(profile, state, packetAge)) return Empty("Нет свежей телеметрии", "Текущая рекомендация снята; проверьте соединение с выбранным портом");
         bool matches = packet.DeviceId == profile.DeviceId && packet.ConfigVersion == profile.ConfigVersion;
-        ImmutableDictionary<string, InputFact>.Builder strategyInputs = ImmutableDictionary.CreateBuilder<string, InputFact>(StringComparer.Ordinal);
-        strategyInputs.Add("V1", new InputFact("V1", new KnowledgeValue(FactType.Boolean, matches ? "true" : "false"),
-            "profile:" + profile.Id + ":" + profile.Version + ":" + profile.Sha256 + "; device/config match=" + matches));
-        InferenceService engine = new InferenceService();
-        InferenceResult? diagnostic = null;
-        if (matches) {
-            ImmutableDictionary<string, InputFact>.Builder observations = ImmutableDictionary.CreateBuilder<string, InputFact>(StringComparer.Ordinal);
-            foreach (SourceRequirement source in profile.Sources) {
-                Observation? observation = packet.Observations.FirstOrDefault(item => item.SourceId == source.SourceId);
-                string status = Normalize(source, state, packetAge);
-                string origin = "telemetry:" + packet.DeviceId + "/" + packet.BootId + "/" + packet.Sequence
-                    + "; " + snapshot.Origin + "; source=" + source.SourceId + "; normalized=" + status
-                    + "; status=" + observation?.Status + "; last_attempt_ms=" + observation?.LastAttemptMs
-                    + "; last_success_ms=" + observation?.LastSuccessMs + "; reason=" + observation?.ErrorDetail
-                    + "; max_age_ms=" + source.MaximumAgeMs + "; host_age_ms="
-                    + (state.IsSerial ? Math.Max(0, packetAge.TotalMilliseconds).ToString("F0", CultureInfo.InvariantCulture) : "не применяется к записи");
-                observations.Add(source.FactId, new InputFact(source.FactId, new KnowledgeValue(FactType.Enum, status), origin));
-            }
-            diagnostic = engine.Run(profile.DiagnosticKnowledge, observations.ToImmutable());
-            foreach (KeyValuePair<string, KnowledgeValue> pair in profile.Defaults)
-                strategyInputs.Add(pair.Key, new InputFact(pair.Key, pair.Value, "profile:" + profile.Id + ":" + profile.Sha256 + "; static_facts." + pair.Key));
-            if (diagnostic.Status == InferenceStatus.Success) {
-                string diagnosticGoal = Goal(diagnostic);
-                foreach (KeyValuePair<string, KnowledgeValue> pair in profile.Mappings[diagnosticGoal])
-                    strategyInputs.Add(pair.Key, new InputFact(pair.Key, pair.Value,
-                        "diagnostic:" + diagnostic.KnowledgeBase.Id + ":" + diagnostic.KnowledgeBase.Sha256
-                        + "; goal=" + diagnosticGoal + "; rules=" + string.Join(",", diagnostic.Steps.Select(step => step.RuleId))
-                        + "; mapping profile:" + profile.Sha256));
-            }
+        ImmutableDictionary<string, InputFact>.Builder observations = ImmutableDictionary.CreateBuilder<string, InputFact>(StringComparer.Ordinal);
+        foreach (Observation observation in packet.Observations) {
+            SourceRequirement? required = profile.Sources.FirstOrDefault(source => source.SourceId == observation.SourceId);
+            string status = required is null ? observation.Enabled ? observation.Status : "disabled" : Normalize(required, state, packetAge);
+            string origin = "telemetry:" + packet.DeviceId + "/" + packet.BootId + "/" + packet.Sequence
+                + "; " + snapshot.Origin + "; source=" + observation.SourceId + "; normalized=" + status
+                + "; status=" + observation.Status + "; last_attempt_ms=" + observation.LastAttemptMs + "; last_success_ms=" + observation.LastSuccessMs
+                + "; reason=" + observation.ErrorDetail + "; max_age_ms=" + required?.MaximumAgeMs + "; host_age_ms="
+                + (state.IsSerial ? Math.Max(0, packetAge.TotalMilliseconds).ToString("F0", CultureInfo.InvariantCulture) : "не применяется к записи");
+            observations.Add(observation.SourceId, new InputFact(observation.SourceId,new KnowledgeValue(FactType.Enum,status),origin));
         }
-        InferenceResult strategy = engine.Run(profile.StrategyKnowledge, strategyInputs.ToImmutable());
+        EvidenceAssessmentService chain = new EvidenceAssessmentService();
+        EvidenceSelection selected = includeChecks ? chain.Select(profile,state,checks) : new EvidenceSelection(ImmutableArray<ModuleEvidence>.Empty,ImmutableArray<string>.Empty);
+        ProfileEvaluation evaluation = chain.Evaluate(profile,observations.ToImmutable(),matches,includeChecks,selected.Items);
+        InferenceResult? diagnostic = evaluation.Diagnostic;
+        InferenceResult strategy = evaluation.Strategy;
+        context += "\n" + evaluation.Note + "\n" + string.Join("\n",evaluation.Witnesses.Select(e=>e.Origin));
         string title = "Стратегия не доказана: " + strategy.Status;
         string recommendation = "Не хватает оснований для рекомендации";
         if (strategy.Status == InferenceStatus.Success) {
@@ -82,7 +69,7 @@ public sealed class LiveAssessmentService {
             recommendation = "Стратегия не подтверждена; откройте объяснение диагностических правил";
         }
         if (!matches) recommendation += "; ожидаются " + profile.DeviceId + " / " + profile.ConfigVersion;
-        return new LiveAssessment(profile, snapshot, mode + " · " + title, recommendation, context, diagnostic, strategy);
+        return new LiveAssessment(profile, snapshot, mode + " · " + title, recommendation, context, diagnostic, strategy) { Evaluation = evaluation };
 
         LiveAssessment Empty(string title, string recommendation)
             => new LiveAssessment(profile, snapshot, title, recommendation, context, null, null);

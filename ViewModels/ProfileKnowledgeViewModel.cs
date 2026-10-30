@@ -50,18 +50,21 @@ public partial class ProfileKnowledgeViewModel : ViewModelBase {
         Groups.Add(new KnowledgeGroupViewModel("Наблюдаемость стенда"));
         Groups.Add(new KnowledgeGroupViewModel("Выбор стратегии"));
         Groups.Add(new KnowledgeGroupViewModel("Выборочные проверки"));
+        Groups.Add(new KnowledgeGroupViewModel("Связь ответов с оценкой"));
         SelectedGroup = Groups[0];
     }
     public void Synchronize(DeviceProfile? replacement, bool loading, string status, string message) {
         LoadStatus = loading ? "Загрузка профиля и правил…" : status + (message.StartsWith("Профиль не заменен:", StringComparison.Ordinal) ? "\n" + message : "");
         if (ReferenceEquals(profile, replacement)) return;
         profile = replacement;
-        Groups[0].Set(profile?.DiagnosticKnowledge); Groups[1].Set(profile?.StrategyKnowledge, true); Groups[2].Set(profile?.ModuleKnowledge);
+        Groups[0].Set(profile?.DiagnosticKnowledge); Groups[1].Set(profile?.StrategyKnowledge, true); Groups[2].Set(profile?.ModuleKnowledge); Groups[3].Set(profile?.EvidencePolicy?.Knowledge);
         ProfileSummary = profile is null ? "Профиль еще не загружен" : profile.Title + " · " + profile.Version + "\n" + profile.Scope;
         PolicyMemo = profile is null ? "После загрузки здесь появятся критерии текущего профиля" : Memo(profile);
         ProfileDetails = profile is null ? "" : profile.Path + "\nID " + profile.Id + "; device " + profile.DeviceId + "; config " + profile.ConfigVersion + "\nSHA256 " + profile.Sha256
             + "\nDefaults: " + string.Join("; ", profile.Defaults.Select(p => p.Key + "=" + KnowledgeTextFormatter.Value(p.Value)))
             + "\nMappings:\n" + string.Join("\n", profile.Mappings.Select(m => m.Key + ": " + string.Join("; ", m.Value.Select(v => v.Key + "=" + KnowledgeTextFormatter.Value(v.Value)))))
+            + "\nПолитика ответов: " + (profile.EvidencePolicy is null ? "не задана" : string.Join("; ", profile.EvidencePolicy.Modules.Select(m => m.Source + ": required=" + m.Required + ", влияет=" + string.Join(",",m.InfluencingOutcomes)))
+                + "\nMapping ответов: " + string.Join("; ",profile.EvidencePolicy.Mappings.Select(m => m.Key + " → " + string.Join(",",m.Value.Select(v => v.Key+"="+v.Value.Canonical)))))
             + "\n" + string.Join("\n", Groups.Where(g => g.Knowledge is not null).Select(g => g.Title + ": " + g.Knowledge!.Id + " / SHA256 " + g.Knowledge.Sha256));
         Rebuild();
     }
@@ -88,7 +91,7 @@ public partial class ProfileKnowledgeViewModel : ViewModelBase {
         string query = Search.Trim();
         Entries.Clear();
         foreach (KnowledgeEntry entry in entries.Where(e => query.Length == 0 || (e.Title + "\n" + e.Body).Contains(query, StringComparison.OrdinalIgnoreCase))) Entries.Add(entry);
-        Found = knowledge is null ? profile is null ? "Загрузите профиль для просмотра знаний" : "БЗ выборочных проверок не подключена"
+        Found = knowledge is null ? profile is null ? "Загрузите профиль для просмотра знаний" : SelectedGroup == Groups[3] ? "БЗ связи ответов не подключена" : "БЗ выборочных проверок не подключена"
             : Entries.Count == 0 ? "По запросу ничего не найдено" : "Найдено: " + Entries.Count + " из " + entries.Length;
         SelectedEntry = Entries.FirstOrDefault(e => e.Id == previous) ?? Entries.FirstOrDefault();
     }

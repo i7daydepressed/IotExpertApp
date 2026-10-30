@@ -31,6 +31,7 @@ public sealed class TelemetryReceiverService : IAsyncDisposable {
     private bool completed;
     private long temporalRejected;
     private long lastPacketTick;
+    private long contextId;
     private long valid, logs, invalid, rejectedOrder, missing, oversized, tails;
 
     public TelemetryReceiverService(ObservationStore store, Func<string, bool, ITelemetryByteSource>? sourceFactory = null, Func<TimeSpan>? clock = null) {
@@ -41,6 +42,14 @@ public sealed class TelemetryReceiverService : IAsyncDisposable {
     public CheckSessionState GetChecks() { lock (gate) return checks.State(); }
     public (GuidedCheckResult? Current, System.Collections.Immutable.ImmutableArray<GuidedCheckResult> History, string Message, TimeSpan Now) GetGuided() {
         lock (gate) { guided.Tick(GetState()); return (guided.Current, guided.History, guided.Message, guided.Now); }
+    }
+    public (ReceiverState State, System.Collections.Immutable.ImmutableArray<GuidedCheckResult> History) GetAssessmentState() {
+        lock (gate) {
+            guided.Tick(GetState());
+            System.Collections.Immutable.ImmutableArray<GuidedCheckResult> history = guided.History;
+            if (guided.Current?.Active == true) history = history.Add(guided.Current);
+            return (GetState(), history);
+        }
     }
     public bool StartGuided(string source, int seconds, uint window, IotExpertApp.Models.Knowledge.KnowledgeBase? knowledge) {
         lock (gate) return guided.Start(source, seconds, window, knowledge, GetState());
@@ -67,7 +76,7 @@ public sealed class TelemetryReceiverService : IAsyncDisposable {
             return new ReceiverState(shown, origin, valid, logs, invalid, rejectedOrder,
                 missing, oversized, tails, lastMessage, store.Current, temporalRejected,
                 running, completed, !serialMode && paused, serialMode ? "живой поток" : description,
-                capture.Description) { IsSerial = serialMode, TestEvents = testEvents, TestErrors = testErrors };
+                capture.Description) { IsSerial = serialMode, ContextId = contextId, TestEvents = testEvents, TestErrors = testErrors };
         }
     }
 
@@ -89,6 +98,7 @@ public sealed class TelemetryReceiverService : IAsyncDisposable {
             await StopCoreAsync();
             cancellation = new CancellationTokenSource();
             lock (gate) {
+                contextId++;
                 store.Clear();
                 checks.Begin(serial);
                 testEvents = testErrors = 0;

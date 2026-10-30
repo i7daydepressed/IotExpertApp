@@ -46,14 +46,14 @@ public sealed class ConsultationService {
         }
     }
 
-    public bool TryAnswer(string factId, string text, out string error) {
+    public bool TryAnswer(string factId, string text, out string error, bool canonicalEnum = false) {
         error = "";
         try {
             KnowledgeJson.Require(!Cancelled, "сеанс отменен");
             KnowledgeJson.Require(Knowledge.Facts.TryGetValue(factId, out FactDefinition? fact) && fact.Role == FactRole.Input,
                 "можно изменить только объявленный input: " + factId);
             KnowledgeJson.Require(text.Length <= 4096, "ответ длиннее 4096 символов");
-            KnowledgeValue? value = ParseAnswer(text.Trim(), fact!);
+            KnowledgeValue? value = ParseAnswer(text.Trim(), fact!, canonicalEnum);
             InputFact input = new InputFact(factId, value, "operator:" + factId + "; at=" + DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture));
             ImmutableDictionary<string, InputFact> changed = answers.SetItem(factId, input);
             InferenceResult recalculated = inference.Run(Knowledge, changed);
@@ -118,7 +118,7 @@ public sealed class ConsultationService {
         }
     }
 
-    private static KnowledgeValue? ParseAnswer(string text, FactDefinition fact) {
+    private static KnowledgeValue? ParseAnswer(string text, FactDefinition fact, bool canonicalEnum) {
         if (text == "?" || text.Equals("не знаю", StringComparison.OrdinalIgnoreCase)
             || text.Equals("неизвестно", StringComparison.OrdinalIgnoreCase)) return null;
         string json;
@@ -131,7 +131,8 @@ public sealed class ConsultationService {
         }
         else if (fact.Type == FactType.Enum) {
             string value = text;
-            if (int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out int index)) {
+            // в CLI число может быть номером варианта, а кнопка UI уже передает точное enum-значение
+            if (!canonicalEnum && int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out int index)) {
                 KnowledgeJson.Require(index >= 1 && index <= fact.Options.Length, "номер варианта вне списка");
                 value = fact.Options[index - 1];
             }

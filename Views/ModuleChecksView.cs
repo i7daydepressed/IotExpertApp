@@ -24,7 +24,7 @@ public sealed class ModuleChecksView : UserControl {
         preference.Children.Add(Button("Сохранить срок", nameof(ModuleChecksViewModel.SavePreferencesCommand)));
         preference.Children.Add(Button("Выключить оба реле", nameof(ModuleChecksViewModel.AllOffCommand)));
         panel.Children.Add(preference); panel.Children.Add(Text(nameof(ModuleChecksViewModel.SettingsMessage)));
-        CheckBox readiness = new CheckBox { Content = "Готов испытать выбранное реле при известных текущих условиях нагрузки (затем отдельный запуск 900 мс)" };
+        CheckBox readiness = new CheckBox { Content = new TextBlock { Text = "Готов испытать выбранное реле при известных текущих условиях нагрузки (затем отдельный запуск 900 мс)", TextWrapping = TextWrapping.Wrap } };
         Bind(readiness, CheckBox.IsCheckedProperty, nameof(ModuleChecksViewModel.RelayReady), BindingMode.TwoWay);
         Bind(readiness, IsEnabledProperty, nameof(ModuleChecksViewModel.Compatible)); panel.Children.Add(readiness);
         ItemsControl cards = new ItemsControl {
@@ -72,8 +72,11 @@ public sealed class ModuleChecksView : UserControl {
         TextBlock title = Text(nameof(ModuleCardViewModel.Title)); title.FontSize = 16; title.FontWeight = FontWeight.SemiBold; p.Children.Add(title);
         TextBlock state = Text(nameof(ModuleCardViewModel.TileStatus)); state.FontWeight = FontWeight.SemiBold; p.Children.Add(state);
         p.Children.Add(Text(nameof(ModuleCardViewModel.Brief)));
-        TextBlock result = Text(nameof(ModuleCardViewModel.GuidedSummary)); result.FontSize = 12; result.MaxLines = 2; result.TextTrimming = TextTrimming.CharacterEllipsis;
-        p.Children.Add(new TextBlock { Text = "Последняя проверка:", FontSize = 12 }); p.Children.Add(result);
+        if (card.Source == "pir") p.Children.Add(Text(nameof(ModuleCardViewModel.ObservationLimitation)));
+        TextBlock result = Text(nameof(ModuleCardViewModel.GuidedSummary)); result.FontSize = 12;
+        if (card.Source != "pir") { result.MaxLines = 2; result.TextTrimming = TextTrimming.CharacterEllipsis; }
+        TextBlock caption = Text(nameof(ModuleCardViewModel.CheckCaption)); caption.FontSize = 12;
+        p.Children.Add(caption); p.Children.Add(result);
         p.Children.Add(Button("Проверить", nameof(ModuleCardViewModel.StartCommand)));
         Border tile = new Border { DataContext = card, Padding = new Thickness(12), CornerRadius = new CornerRadius(8), Child = p };
         tile.Bind(Border.BackgroundProperty, new Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension("SystemControlBackgroundAltHighBrush"));
@@ -84,7 +87,7 @@ public sealed class ModuleChecksView : UserControl {
         TextBlock title = Text(nameof(ModuleChecksViewModel.SelectedTitle)); title.FontSize = 18; title.FontWeight = FontWeight.SemiBold; p.Children.Add(title);
         p.Children.Add(Text(nameof(ModuleChecksViewModel.PhaseText))); p.Children.Add(Text(nameof(ModuleChecksViewModel.Instruction)));
         StackPanel window = new StackPanel { Spacing = 4 };
-        window.Children.Add(new TextBlock { Text = "Измерительное окно GPIO, мс (отдельно от срока ответа)" });
+        window.Children.Add(new TextBlock { Text = "Измерительное окно GPIO, мс (отдельно от срока ответа)", TextWrapping = TextWrapping.Wrap });
         NumericUpDown duration = new NumericUpDown { Minimum = 100, Maximum = 10000, Increment = 100, Width = 150, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left };
         Bind(duration, NumericUpDown.ValueProperty, nameof(ModuleChecksViewModel.WindowDuration), BindingMode.TwoWay); window.Children.Add(duration);
         Bind(window, IsVisibleProperty, nameof(ModuleChecksViewModel.IsObserveSelected)); p.Children.Add(window);
@@ -100,20 +103,23 @@ public sealed class ModuleChecksView : UserControl {
         }
         p.Children.Add(answers); p.Children.Add(Text(nameof(ModuleChecksViewModel.HumanText)));
         TextBlock verdict = Text(nameof(ModuleChecksViewModel.Verdict)); verdict.FontWeight = FontWeight.SemiBold; p.Children.Add(verdict);
-        TreeView tree = new TreeView { MaxHeight = 320, ItemTemplate = new FuncTreeDataTemplate<ExplanationTreeNode>(
-            (node, _) => new TextBlock { Text = node?.Title ?? "", TextWrapping = TextWrapping.Wrap, MaxWidth = 700 },
-            node => node is null ? ImmutableArray<ExplanationTreeNode>.Empty : node.Children) };
-        Bind(tree, ItemsControl.ItemsSourceProperty, nameof(ModuleChecksViewModel.GuidedTree));
-        p.Children.Add(new Expander { Header = "Почему? Правила и основания", Content = tree });
+        p.Children.Add(Button("Почему такой результат?", nameof(ModuleChecksViewModel.ExplainCheckCommand)));
+        StackPanel proof = new StackPanel { Spacing = 8 };
+        proof.Children.Add(Text(nameof(ModuleChecksViewModel.ModuleExplanationHistory)));
+        proof.Children.Add(Text(nameof(ModuleChecksViewModel.ModuleExplanationContext)));
+        proof.Children.Add(ResultExplanationView.For(nameof(ModuleChecksViewModel.FrozenModuleExplanation)));
+        proof.Children.Add(new Expander { Header = new TextBlock { Text = "Подробности закрепленной проверки", TextWrapping = TextWrapping.Wrap, MaxWidth = 240 }, Content = Text(nameof(ModuleChecksViewModel.ModuleExplanationDetails)) });
+        Expander explanation = new Expander { Header = new TextBlock { Text = "Закрепленное объяснение проверки", TextWrapping = TextWrapping.Wrap, MaxWidth = 240 }, Content = proof };
+        Bind(explanation, Expander.IsExpandedProperty, nameof(ModuleChecksViewModel.ModuleExplanationOpen), BindingMode.TwoWay); p.Children.Add(explanation);
         StackPanel details = new StackPanel { Spacing = 6 };
         details.Children.Add(Text(nameof(ModuleChecksViewModel.WorkflowDetails)));
         details.Children.Add(Button("Восстановить по status", nameof(ModuleChecksViewModel.RecoverCommand)));
         details.Children.Add(Button("Повторить finish после status", nameof(ModuleChecksViewModel.RetryFinishCommand)));
-        p.Children.Add(new Expander { Header = "Параметры и восстановление", Content = details });
+        p.Children.Add(new Expander { Header = new TextBlock { Text = "Параметры и восстановление", TextWrapping = TextWrapping.Wrap, MaxWidth = 240 }, Content = details });
         Border active = new Border { Padding = new Thickness(14), CornerRadius = new CornerRadius(8), Child = p };
         active.Bind(Border.BackgroundProperty, new Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension("SystemControlBackgroundAltHighBrush")); return active;
     }
     private static TextBlock Text(string property) { TextBlock text = new TextBlock { TextWrapping = TextWrapping.Wrap }; Bind(text, TextBlock.TextProperty, property); return text; }
-    private static Button Button(string text, string command) { Button button = new Button { Content = text, Margin = new Thickness(0, 0, 8, 8) }; Bind(button, Avalonia.Controls.Button.CommandProperty, command); return button; }
+    private static Button Button(string text, string command) { Button button = new Button { Content = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, MaxWidth = 240 }, Margin = new Thickness(0, 0, 8, 8) }; Bind(button, Avalonia.Controls.Button.CommandProperty, command); return button; }
     private static void Bind(Control control, AvaloniaProperty property, string path, BindingMode mode = BindingMode.OneWay) => control.Bind(property, new ReflectionBinding(path) { Mode = mode });
 }

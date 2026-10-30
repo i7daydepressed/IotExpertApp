@@ -61,6 +61,20 @@ public static class GuidedCheckChecks {
             Drain();
             return (session,flow,sent,Drain,Receive,s => now=TimeSpan.FromSeconds(s));
         }
+        {
+            (SelectiveCheckSession session, GuidedCheckCoordinator flow, List<CheckRequest> sent, Action drain, Action<CheckEvent> receive, Action<double> clock) = Harness();
+            Check(flow.Start("oled",5,500,knowledge,state),"history start OLED"); drain();
+            receive(Event("dispatch",5)); receive(Event("ready",5)); flow.Answer("Нет"); drain(); receive(Event("terminal",5));
+            GuidedCheckResult negative = flow.Current!;
+            Check(negative.CompletedAt.HasValue && negative.ContextId == state.ContextId,"время завершения и контекст сохраняются");
+            for (int i = 0; i < 35; i++) {
+                Check(flow.Start("esp32",5,500,knowledge,state),"history start RAM"); drain();
+                CheckEvent complete = Event("terminal",5) with { Source="esp32", Operation="snapshot", RequestId=flow.Current!.RequestId,
+                    HumanConfirmation=null, Data=JsonSerializer.SerializeToElement(new {free_heap_bytes=1000}) };
+                receive(complete);
+            }
+            Check(flow.History.Contains(negative) && flow.History.Length == 32,"лимит истории не вытесняет последнее замечание другого модуля");
+        }
         foreach (string? answer in new string?[] { "Да","Нет","Неясно","Не проверял",null }) {
             (SelectiveCheckSession session, GuidedCheckCoordinator flow, List<CheckRequest> sent, Action drain, Action<CheckEvent> receive, Action<double> clock) = Harness();
             Check(flow.Start("oled",5,500,knowledge,state),"start OLED"); drain();
@@ -211,7 +225,7 @@ public static class GuidedCheckChecks {
             Check(CheckPreferences.Load(settings).Seconds==30,"fallback30");
             foreach(string valid in new[]{"5","300"}){CheckPreferences.Save(settings,valid);Check(CheckPreferences.Load(settings).Seconds==int.Parse(valid),"границы/восстановление предпочтения");}
             foreach(string invalid in new[]{"4","301","5.5","abc"}) {bool rejected=false;try{CheckPreferences.Save(settings,invalid);}catch(InvalidDataException){rejected=true;}Check(rejected,"неверный срок");}
-            JsonObject profile=JsonNode.Parse(File.ReadAllText(original.Path))!.AsObject();profile.Remove("module_check_knowledge");
+            JsonObject profile=JsonNode.Parse(File.ReadAllText(original.Path))!.AsObject();profile.Remove("module_check_knowledge");profile.Remove("evidence_policy");
             profile["diagnostic_knowledge"]=Path.GetRelativePath(temp.FullName,Path.Combine(AppContext.BaseDirectory,"DeviceProfiles","esp32-observability.rules.json"));
             profile["strategy_knowledge"]=Path.GetRelativePath(temp.FullName,Path.Combine(AppContext.BaseDirectory,"Knowledge","lr1-strategies.json"));
             string path=Path.Combine(temp.FullName,"old-profile.json");File.WriteAllText(path,profile.ToJsonString());

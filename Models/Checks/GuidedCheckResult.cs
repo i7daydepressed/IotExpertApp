@@ -10,5 +10,7 @@ public sealed record GuidedCheckResult(string Device, string Boot, string Firmwa
     CheckEvent? Machine, HumanCheckAnswer? Human, bool FinishRequested, InferenceResult? Inference) {
     public string ResponseOutcome { get; init; } = "pending";
     public int Revision { get; init; }
+    public long ContextId { get; init; }
+    public DateTimeOffset? CompletedAt { get; init; }
     public bool Active => Phase is "starting" or "machine" or "answer" or "finishing";
 }

@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Immutable;
+using IotExpertApp.Models.Checks;
 using System.Diagnostics;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -22,6 +24,7 @@ public partial class MainViewModel : ViewModelBase {
     public ConsultationViewModel Consultation { get; } = new ConsultationViewModel();
     public KnowledgeEditorViewModel KnowledgeEditor { get; }
     public LiveMonitorViewModel Live { get; } = new LiveMonitorViewModel();
+    public VirtualStandViewModel VirtualStand { get; }
     public ModuleChecksViewModel Modules { get; }
     public OnlineDataViewModel Online { get; } = new OnlineDataViewModel();
     public ProfileKnowledgeViewModel ProfileKnowledge { get; }
@@ -44,6 +47,7 @@ public partial class MainViewModel : ViewModelBase {
 
     public MainViewModel(TelemetryReceiverService receiver) {
         this.receiver = receiver;
+        VirtualStand = new VirtualStandViewModel(Live);
         ProfileKnowledge = new ProfileKnowledgeViewModel(Live);
         Modules = new ModuleChecksViewModel(receiver, () => Live.Profile);
         KnowledgeEditor = new KnowledgeEditorViewModel(path => Consultation.KnowledgePath = path);
@@ -103,8 +107,9 @@ public partial class MainViewModel : ViewModelBase {
     }
 
     private void Refresh() {
-        ReceiverState state = receiver.GetState();
-        Live.Update(state);
+        (ReceiverState state, ImmutableArray<GuidedCheckResult> checks) = receiver.GetAssessmentState();
+        Live.Update(state, checks);
+        VirtualStand.OfferProfile(Live.Profile);
         Modules.Update(state);
         TimeSpan packetAge = state.Snapshot is null ? TimeSpan.Zero : Stopwatch.GetElapsedTime(state.Snapshot.ReceivedTick);
         Online.Update(state, Live.Profile, packetAge);

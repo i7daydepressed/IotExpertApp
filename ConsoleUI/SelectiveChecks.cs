@@ -186,10 +186,27 @@ public static class SelectiveChecks {
         Check(modules.Cards.Count == 9 && modules.Cards.Select(c => c.Source).Distinct().Count() == 9, "девять разных источников");
         ModuleCardViewModel card = modules.Cards.Single(c => c.Source == "pir"); card.FreezeCommand.Execute(null);
         ModuleCheckChoice? held = card.Selected;
+        Check(card.Brief.Contains("Сырой уровень GPIO:", StringComparison.Ordinal) && !card.Brief.Contains("успешн", StringComparison.Ordinal)
+            && card.Brief.Contains("из снимка", StringComparison.Ordinal), "PIR raw отделен от успешного измерения и привязан к снимку");
+        Check(card.GuidedSummary.Contains("Переходов:", StringComparison.Ordinal) && card.GuidedSummary.Contains("Ответ пользователя:", StringComparison.Ordinal)
+            && card.ObservationLimitation.Contains("Питание отдельно не подтверждено", StringComparison.Ordinal), "PIR: raw, выборочная проверка и ограничение представлены раздельно");
+        CheckEvent previous = held!.Result.Event;
+        GuidedCheckResult prior = new GuidedCheckResult(previous.Device,previous.Boot,previous.Firmware,previous.Config,previous.RequestId!.Value,"pir","observe",
+            held.Result.Origin,previous.ProtocolVersion,30,3000,null,"finished","answered",TimeSpan.Zero,TimeSpan.Zero,null,previous,
+            new HumanCheckAnswer(previous.Device,previous.Boot,previous.RequestId.Value,"pir","Да",DateTimeOffset.UtcNow,"fake presentation"),false,null);
+        card.UpdateCheckSummary(prior,false,true);
+        Check(card.CheckCaption.Contains("Предыдущая проверка", StringComparison.Ordinal) && card.GuidedSummary.Contains("Ответ пользователя: Да", StringComparison.Ordinal)
+            && card.ObservationLimitation.Contains("power_not_verified", StringComparison.Ordinal), "новый опрос не делает предыдущий ответ текущим и не подтверждает питание");
+        modules.Update(receiver.GetState());
         await using MemoryStream export = new MemoryStream(); await modules.ExportAsync(export);
         Check(JsonDocument.Parse(export.ToArray()).RootElement.GetProperty("results").GetArrayLength() == 7, "экспорт ограниченного протокола отдельно от v1");
         await receiver.StopAsync(); modules.Update(receiver.GetState());
         Check(ReferenceEquals(held, card.Selected) && opened.All(f => f.Disposed), "выбранная проверка сохраняется, транспорт закрыт");
+        Check(card.Brief.Contains("историческое значение", StringComparison.Ordinal) && card.GuidedSummary.Contains("историческая проверка", StringComparison.Ordinal), "Stop явно сохраняет исторические raw и тест");
+        ReceiverState stopped = receiver.GetState();
+        TelemetryPacket unknownRaw = stopped.Snapshot!.Packet with { Observations = stopped.Snapshot.Packet.Observations.Select(o => o.SourceId == "pir" ? o with {RawLevel=null} : o).ToArray() };
+        card.Update(stopped with {Snapshot=new ReceivedSnapshot(unknownRaw,DateTimeOffset.UtcNow,stopped.Origin)},receiver.GetChecks());
+        Check(card.Brief.Contains("GPIO: нет данных", StringComparison.Ordinal), "неизвестный raw не превращается в ноль");
         await receiver.StartFileAsync("fake-replay"); source = opened[^1]; source.Feed(v1 + "\n" + capabilities + "\n");
         await Wait(() => receiver.GetState().TestEvents == 1);
         Check(!receiver.QueueCheck("esp32", "capabilities", null, null, out _) && source.Writes.Count == 0, "на replay нет записи даже у fake с Write");

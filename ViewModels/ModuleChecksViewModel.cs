@@ -21,6 +21,13 @@ public partial class ModuleChecksViewModel : ViewModelBase {
     private readonly TelemetryReceiverService receiver;
     private readonly Func<DeviceProfile?> profile;
     private GuidedCheckResult? shownGuided;
+    private GuidedCheckResult? explainable;
+    public GuidedCheckResult? FrozenGuided { get; private set; }
+    [ObservableProperty] private ResultExplanationViewModel? frozenModuleExplanation;
+    [ObservableProperty] private bool moduleExplanationOpen;
+    [ObservableProperty] private string moduleExplanationContext = "";
+    [ObservableProperty] private string moduleExplanationHistory = "";
+    [ObservableProperty] private string moduleExplanationDetails = "";
     private bool inspectingSelection;
     public ObservableCollection<ExplanationTreeNode> GuidedTree { get; } = new ObservableCollection<ExplanationTreeNode>();
     public uint ProtocolVersion => receiver.GetChecks().ProtocolVersion;
@@ -75,8 +82,13 @@ public partial class ModuleChecksViewModel : ViewModelBase {
     public void Select(ModuleCardViewModel card) {
         if (receiver.GetGuided().Current?.Active == true) { Message = "Сначала завершите активную проверку; вопрос не изменен"; return; }
         inspectingSelection = true;
-        MachineText = "Проверка выбранного модуля еще не начата"; HumanText = "Ответ человека отсутствует"; Remaining = ""; WorkflowDetails = ""; GuidedTree.Clear();
+        MachineText = "Проверка выбранного модуля еще не начата"; HumanText = "Ответ человека отсутствует"; Remaining = ""; WorkflowDetails = ""; explainable = null;
         SelectedCard = card; SelectedTitle = card.Title; Instruction = card.Limitation;
+        if (card.Selected is not null) {
+            CheckResult chosen = card.Selected.Result;
+            GuidedCheckResult? saved = receiver.GetGuided().History.LastOrDefault(r => r.Source == card.Source && r.RequestId == chosen.Event.RequestId && r.Boot == chosen.Event.Boot && r.Origin == chosen.Origin);
+            if (saved is not null) { ShowTree(saved); Verdict = ModuleCheckAssessment.Summary(saved); }
+        }
         IsObserveSelected = card.IsObserve; Question = ""; Verdict = "";
         PhaseText = card.IsObserve ? "Приготовьтесь → Начать окно" : card.IsRelay ? "Подтвердите условия нагрузки, затем начните импульс" : "Нажмите Начать проверку";
         CanBegin = card.CanStart;
@@ -88,9 +100,8 @@ public partial class ModuleChecksViewModel : ViewModelBase {
             if (card.Selected is not null) {
                 CheckEvent e = card.Selected.Result.Event;
                 GuidedCheckResult archived = new GuidedCheckResult(e.Device,e.Boot,e.Firmware,e.Config,e.RequestId ?? 0,card.Source,e.Operation!,card.Selected.Result.Origin,
-                    e.ProtocolVersion,30,null,profile()?.ModuleKnowledge,"finished","machine",TimeSpan.Zero,TimeSpan.Zero,null,e,null,false,null);
-                archived = archived with { Inference = ModuleCheckAssessment.Run(archived) };
-                Verdict = "Запись · " + ModuleCheckAssessment.Summary(archived); ShowTree(archived);
+                    e.ProtocolVersion,30,null,null,"finished","machine",TimeSpan.Zero,TimeSpan.Zero,null,e,null,false,null);
+                Verdict = "Запись: экспертное объяснение не сохранено; ответ пользователя отсутствует"; ShowTree(archived);
             }
         }
     }
@@ -115,7 +126,7 @@ public partial class ModuleChecksViewModel : ViewModelBase {
         (GuidedCheckResult? current, ImmutableArray<GuidedCheckResult> history, string status, TimeSpan now) = receiver.GetGuided();
         foreach (ModuleCardViewModel card in Cards) {
             GuidedCheckResult? result = history.LastOrDefault(r => r.Source == card.Source);
-            card.GuidedSummary = result is null ? card.MachineSummary : (IsHistorical(result, telemetry) ? "История live · " : "") + ModuleCheckAssessment.Summary(result);
+            card.UpdateCheckSummary(result, result is not null && IsHistorical(result, telemetry), current?.Active == true && current.Source == card.Source);
         }
         Summary = history.Length == 0 ? "Выборочные проверки еще не проводились" : "Проведено: " + history.Length
             + "; с подтверждением: " + history.Count(IsConfirmed)
@@ -124,6 +135,8 @@ public partial class ModuleChecksViewModel : ViewModelBase {
             + " · " + ModuleCheckAssessment.Summary(history[^1]);
         CanAnswer = current?.Phase == "answer";
         CanBegin = current?.Active != true && SelectedCard?.CanStart == true && (SelectedCard.Source != "oled" || receiver.GetChecks().ProtocolVersion == 2);
+        if (FrozenGuided is not null && (IsHistorical(FrozenGuided, telemetry) || !ReferenceEquals(explainable, FrozenGuided)))
+            ModuleExplanationHistory = "История выбранной редакции; управление текущей проверкой продолжает обновляться отдельно";
         if (current is null || inspectingSelection && !current.Active) return;
         Remaining = current.Phase == "answer" && current.AnswerDeadline.HasValue ? "Осталось на ответ: " + Math.Max(0, Math.Ceiling((current.AnswerDeadline.Value - now).TotalSeconds)) + " с"
             : current.Phase == "machine" && current.Operation == "observe" ? "Измерительное окно, мс: " + current.WindowMs : "";
@@ -155,8 +168,31 @@ public partial class ModuleChecksViewModel : ViewModelBase {
     private static string MachineValue(CheckEvent e, string key) => e.Data.TryGetProperty(key, out JsonElement value)
         ? value.ValueKind switch { JsonValueKind.Null => "неизвестно", JsonValueKind.True => "да", JsonValueKind.False => "нет", _ => value.ToString() } : "неизвестно";
     private void ShowTree(GuidedCheckResult result) {
+        explainable = result;
+        if (FrozenGuided is not null && !ReferenceEquals(FrozenGuided, result)) ModuleExplanationHistory = "История: появилась другая редакция; открытое объяснение не заменено";
+    }
+    [RelayCommand] private void ExplainCheck() {
+        if (explainable is null) { FrozenGuided = null; FrozenModuleExplanation = null; GuidedTree.Clear(); ModuleExplanationOpen = true; ModuleExplanationContext = "Сохраненного результата выбранной проверки еще нет"; return; }
+        PinExplanation(explainable);
+    }
+    public void PinExplanation(GuidedCheckResult result) {
+        FrozenGuided = result;
+        string machine = result.Machine is null ? "Машинный ответ отсутствует" : result.Machine.Stage + " · " + result.Machine.Reason
+            + (result.Source == "oled" ? "\nПередача: " + MachineValue(result.Machine, "transfer_ok") + "; возврат панели: " + MachineValue(result.Machine, "dashboard_restored")
+                : result.Operation == "observe" ? "\nПереходов: " + MachineValue(result.Machine, "transition_count") + "; выборок: " + MachineValue(result.Machine, "sample_count") : "");
+        string human = result.Human is not null ? result.Human.Answer + " · " + result.Human.AnsweredAt.ToString("O")
+            : result.EndReason == "timeout" || result.ResponseOutcome == "timeout" ? "Ответ не получен за " + result.ResponseSeconds + " с; Human отсутствует" : "Ответ человека отсутствует; это не Нет";
+        ModuleExplanationContext = result.Source + " / " + result.Operation + "; ID " + result.RequestId + "; редакция " + result.Revision
+            + "\n" + (result.Origin.StartsWith("serial:", StringComparison.Ordinal) ? "Serial" : result.Origin.StartsWith("synthetic", StringComparison.Ordinal) ? "Синтетический результат" : "Запись") + " | " + result.Device
+            + "\nЧто сообщила прошивка: " + machine + "\nЧто ответил человек: " + human
+            + "\nПределы: " + Cards.Single(c => c.Source == result.Source).Limitation + "\nПричина завершения: " + result.EndReason + "\nБЗ проверки: " + result.Knowledge?.Id + " / " + result.Knowledge?.Version + " / " + result.Knowledge?.Sha256
+            + (result.Inference is null ? "\nЭкспертное объяснение для этой записи недоступно: Inference не сохранен" : "");
+        ModuleExplanationDetails = result.Origin + " | boot " + result.Boot + "\nБЗ проверки: " + result.Knowledge?.Id + " / " + result.Knowledge?.Version + " / " + result.Knowledge?.Sha256;
+        FrozenModuleExplanation = result.Inference is null ? null : new ResultExplanationViewModel(result.Inference, ModuleExplanationContext, ModuleExplanationDetails);
         GuidedTree.Clear();
-        if (result.Inference is not null) foreach (ExplanationTreeNode node in new ExplanationTreeBuilder().Build(result.Inference)) GuidedTree.Add(node);
+        if (FrozenModuleExplanation is not null) foreach (ExplanationTreeNode node in FrozenModuleExplanation.TreeRoots) GuidedTree.Add(node);
+        ModuleExplanationHistory = "Объяснение закреплено; иной результат открывается только явно";
+        ModuleExplanationOpen = true;
     }
     public void Send(string source, string operation, uint? duration = null, ulong? target = null) {
         if (!receiver.QueueCheck(source, operation, duration, target, out string error)) Message = error;
@@ -196,6 +232,7 @@ public sealed record ModuleCheckChoice(CheckResult Result) {
 public partial class ModuleCardViewModel : ViewModelBase {
     private readonly ModuleChecksViewModel owner;
     private CheckResult? latest;
+    private string completedSummary = "Завершенной выборочной проверки нет";
     public string Source { get; }
     public string Operation => CheckProtocol.Operation(Source, owner.ProtocolVersion);
     public bool IsObserve => Operation == "observe";
@@ -215,7 +252,7 @@ public partial class ModuleCardViewModel : ViewModelBase {
         "dht11" => "Температура воздуха, не кристалла ESP32; точность калибровки не проверяется",
         "light" => "Перед запуском освещайте/закрывайте датчик в течение выбранного окна. Это не люксы; 0 переходов не означает отказ",
         "ir" => "Перед запуском подносите/убирайте ладонь в течение окна. Расстояние не измеряется; быстрые фронты могут пропускаться",
-        "pir" => "Перед запуском создайте движение перед линзой в течение окна. Raw и ответ не снимают power_not_verified и не измеряют VCC",
+        "pir" => "Питание отдельно не подтверждено (power_not_verified). Перед запуском создайте движение перед линзой в течение окна. Raw и ответ не снимают power_not_verified и не измеряют VCC",
         "microsd" => "Последний тест исторический: старый успех не доказывает текущую доступность. Емкость/свободное место не измеряются",
         _ => "Нужны известные текущие условия нагрузки. ACK/GPIO/щелчок не доказывают контакты. Тайм-аут не выключает реле"
     };
@@ -226,6 +263,8 @@ public partial class ModuleCardViewModel : ViewModelBase {
     [ObservableProperty] private string observation = "Текущее наблюдение v1: еще нет данных";
     [ObservableProperty] private string guidedSummary = "Выборочная проверка еще не проводилась";
     [ObservableProperty] private string tileStatus = "Нет данных";
+    public string ObservationLimitation => Source == "pir" ? "Питание отдельно не подтверждено (power_not_verified)" : "";
+    [ObservableProperty] private string checkCaption = "Результат последней выборочной проверки:";
     public string Brief => Observation.Split('\n').ElementAtOrDefault(1) ?? Observation;
     [ObservableProperty] private string machineSummary = "Выборочная проверка: еще нет результата";
     [ObservableProperty] private string machine = "Выборочная проверка: еще нет результата";
@@ -246,8 +285,8 @@ public partial class ModuleCardViewModel : ViewModelBase {
     public void Update(ReceiverState telemetry, CheckSessionState state) {
         TelemetryPacket? packet = telemetry.Snapshot?.Packet;
         Observation? obs = packet?.Observations.FirstOrDefault(o => o.SourceId == Source);
-        Observation = obs is null ? "Текущее наблюдение v1: еще нет данных" : DescribeObservation(obs, packet!);
-        TileStatus = obs is null ? "Нет данных" : Source == "pir" ? "Питание не подтверждено"
+        Observation = obs is null ? Source == "pir" ? "Программное наблюдение raw: еще нет данных" : "Текущее наблюдение v1: еще нет данных" : DescribeObservation(obs, packet!, telemetry);
+        TileStatus = obs is null ? "Нет данных" : Source == "pir" ? "Программное наблюдение raw"
             : !telemetry.IsSerial ? "Запись · " + obs.Status : !telemetry.Running ? "Источник остановлен · " + obs.Status
             : Source is "esp32" or "oled" or "dht11" or "light" or "ir" && telemetry.Snapshot is not null
                 && System.Diagnostics.Stopwatch.GetElapsedTime(telemetry.Snapshot.ReceivedTick).TotalSeconds > 10 ? "Данные устарели"
@@ -265,6 +304,13 @@ public partial class ModuleCardViewModel : ViewModelBase {
             : IsRelay && !state.RelayAuthorized ? "Нужно явное разрешение оператора для этого подключения/boot" : "Операция доступна";
         CheckResult[] results = state.History.Where(r => r.Event.Source == Source).Reverse().ToArray();
         latest = results.FirstOrDefault();
+        CheckResult? completed = results.FirstOrDefault(r => r.Event.Terminal);
+        HumanCheckAnswer? completedAnswer = completed is null ? null : state.Answers.LastOrDefault(a => a.Device == completed.Event.Device && a.Boot == completed.Event.Boot
+            && a.RequestId == completed.Event.RequestId && a.Source == Source);
+        completedSummary = completed is null ? "Завершенной выборочной проверки нет" : "ID " + completed.Event.RequestId
+            + (!telemetry.IsSerial || !telemetry.Running || completed.Origin != telemetry.Origin || completed.Event.Device + "/" + completed.Event.Boot != state.Identity ? " · историческая проверка" : "")
+            + (IsObserve ? "\nПереходов: " + Field(completed.Event.Data, "transition_count") : "")
+            + "\nОтвет пользователя: " + (completedAnswer?.Answer ?? "отсутствует (не равен Нет)");
         if (Results.Count != results.Length || Results.Where((r, i) => !ReferenceEquals(r.Result, results[i])).Any()) {
             ModuleCheckChoice? held = Selected;
             Results.Clear(); foreach (CheckResult result in results) Results.Add(new ModuleCheckChoice(result));
@@ -278,9 +324,17 @@ public partial class ModuleCardViewModel : ViewModelBase {
             HumanAnswer = human is null ? "Ответ человека отсутствует (не равен Нет)" : human.Answer + " · " + human.AnsweredAt.ToString("O") + " · " + human.Method;
         }
         if (Selected is null) Technical = "Выборочной проверки нет";
-        if (obs is not null) Technical += "\nТекущее наблюдение v1: " + obs.SourceId + " / " + obs.Status
+        if (obs is not null) Technical += (Source == "pir" ? "\nПрограммное наблюдение raw из снимка: " : "\nТекущее наблюдение v1: ") + obs.SourceId + " / " + obs.Status
             + "; попыток " + obs.AttemptCount + "; подряд ошибок " + obs.ConsecutiveErrors + "; raw=" + obs.RawLevel
             + "\nvalues=" + (obs.Values?.GetRawText() ?? "null");
+    }
+    internal void UpdateCheckSummary(GuidedCheckResult? result, bool historical, bool inProgress) {
+        CheckCaption = inProgress ? "Предыдущая проверка · идет новый опрос:" : "Результат последней выборочной проверки:";
+        if (Source != "pir") { GuidedSummary = result is null ? MachineSummary : (historical ? "История live · " : "") + ModuleCheckAssessment.Summary(result); return; }
+        GuidedSummary = result is null ? completedSummary : (historical ? "Историческая проверка · " : "") + "ID " + result.RequestId
+            + "\nПереходов: " + Field(result.Machine?.Data, "transition_count")
+            + "\nОтвет пользователя: " + (result.Human?.Answer ?? (result.EndReason == "timeout" ? "не получен за " + result.ResponseSeconds + " с" : "отсутствует (не равен Нет)"))
+            + "\n" + ModuleCheckAssessment.Summary(result);
     }
     [RelayCommand] private void Start() => owner.Select(this);
     [RelayCommand] private void Freeze() { if (Selected is not null) Pinned = true; }
@@ -317,12 +371,15 @@ public partial class ModuleCardViewModel : ViewModelBase {
             _ => "Программный импульс/выключение; GPIO IN1=" + V("in1_level") + ", IN2=" + V("in2_level") + "; OFF callback=" + V("off_callback_ms") + "; OFF команда=" + V("off_command_ok") + ". Контакты не измеряются"
         };
     }
-    private string DescribeObservation(Observation o, TelemetryPacket p) {
+    private string DescribeObservation(Observation o, TelemetryPacket p, ReceiverState telemetry) {
+        // raw относится к принятому снимку; он не становится успешным измерением движения из-за статуса или ответа
+        if (Source == "pir") return "Программное наблюдение raw · " + o.Status
+            + "\nСырой уровень GPIO: " + (o.RawLevel?.ToString() ?? "нет данных") + " · историческое значение из снимка " + p.Sequence
+            + "\nСнимок принят: " + telemetry.Snapshot!.ReceivedAt.ToString("O") + "; GPIO не является измерением движения";
         string age = o.LastSuccessMs.HasValue ? (p.UptimeMs - o.LastSuccessMs.Value) + " мс на момент снимка" : "успешных данных нет";
         string old = o.Status == "ok" ? "" : "Последние успешные данные (старые): ";
         string values = o.Values.HasValue ? DescribeData(o.Values.Value) : "нет успешных величин";
         if (Source is "light" or "ir") values = "Цифровой уровень: " + Field(o.Values, "digital_level");
-        if (Source == "pir") values = "Raw: " + o.RawLevel + "; питание не подтверждено";
         if (IsRelay) values = "GPIO: " + Field(o.Values, "gpio_level") + "; импульс активен: " + Field(o.Values, "pulse_active");
         if (Source == "oled") values = "Передача framebuffer: " + Field(o.Values, "transfer_ok");
         if (Source == "microsd") values = "Последний файловый тест: " + Field(o.Values, "test_passed") + "; длительность " + Field(o.Values, "duration_ms") + " мс";

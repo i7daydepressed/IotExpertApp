@@ -27,17 +27,17 @@ public sealed class ExplanationTreeBuilder {
             List<ExplanationTreeNode> roots = new List<ExplanationTreeNode>();
             KnowledgeBase knowledge = result.KnowledgeBase;
             Add(roots, "БЗ " + knowledge.Id + " | версия " + knowledge.Version + " | SHA256 " + knowledge.Sha256, 0);
-            Add(roots, "Статус: " + result.Status + (result.Status == InferenceStatus.Success
-                ? " — исход доказан" : " — подтвержденной рекомендации нет"), 0);
+            Add(roots, "Статус: " + KnowledgeTextFormatter.Status(result.Status) + (result.Status == InferenceStatus.Success
+                ? " — смысл определяется значением цели" : " — подтвержденной рекомендации нет"), 0);
             if (result.Status == InferenceStatus.Success) {
                 string goal = knowledge.Facts.Values.Single(fact => fact.Role == FactRole.Goal).Id;
                 Add(roots, "Доказательство исхода", 0, children => Fact(children, goal, new HashSet<string>(StringComparer.Ordinal), 1));
             }
             if (result.Conflict is InferenceConflict conflict) {
-                Add(roots, "Конфликт " + conflict.FactId + ": " + conflict.Existing.Value.Canonical + " / "
-                    + conflict.Incoming.Value.Canonical + "; значения предварительные", 0, children => {
+                Add(roots, "Конфликт " + conflict.FactId + ": " + KnowledgeTextFormatter.Value(conflict.Existing.Value) + " / "
+                    + KnowledgeTextFormatter.Value(conflict.Incoming.Value) + "; значения предварительные", 0, children => {
                         Fact(children, conflict.FactId, new HashSet<string>(StringComparer.Ordinal), 1);
-                        Add(children, "Новое заключение: " + conflict.Incoming.FactId + "=" + conflict.Incoming.Value.Canonical
+                        Add(children, "Новое заключение: " + conflict.Incoming.FactId + "=" + KnowledgeTextFormatter.Value(conflict.Incoming.Value)
                             + " | правило " + conflict.RuleId, 1, incoming => Condition(incoming, conflict.Condition, 2));
                     });
             }
@@ -58,13 +58,13 @@ public sealed class ExplanationTreeBuilder {
                         Add(detail, "Происхождение: " + rule.Provenance, 2);
                         Condition(detail, step.Condition, 2);
                         foreach (Conclusion conclusion in step.Conclusions)
-                            Add(detail, "Выведено: " + conclusion.FactId + "=" + conclusion.Value.Canonical, 2);
+                            Add(detail, "Выведено: " + KnowledgeTextFormatter.Name(knowledge, conclusion.FactId) + "=" + KnowledgeTextFormatter.Value(conclusion.Value), 2);
                     });
                 }
             });
-            Add(roots, "Исходные ответы: " + result.Inputs.Count, 0, children => {
+            Add(roots, "Входные данные расчета: " + result.Inputs.Count, 0, children => {
                 foreach (InputFact input in result.Inputs.Values.OrderBy(item => item.FactId, StringComparer.Ordinal))
-                    Add(children, input.FactId + "=" + (input.Value?.Canonical ?? "неизвестно") + " | " + input.Origin, 1);
+                    Add(children, KnowledgeTextFormatter.Name(knowledge, input.FactId) + "=" + (input.Value is null ? "Не знаю (ответ получен)" : KnowledgeTextFormatter.Value(input.Value)) + " | " + input.Origin, 1);
             });
             return roots.ToImmutableArray();
         }
@@ -75,7 +75,7 @@ public sealed class ExplanationTreeBuilder {
                 return;
             }
             bool repeated = path.Contains(id);
-            Add(parent, id + "=" + fact.Value.Canonical + " — " + result.KnowledgeBase.Facts[id].Name
+            Add(parent, KnowledgeTextFormatter.Name(result.KnowledgeBase, id) + "=" + KnowledgeTextFormatter.Value(fact.Value)
                 + (repeated ? " | повторная ссылка, ветвь не раскрывается" : ""), depth, children => {
                     if (repeated) return;
                     path.Add(id);
@@ -99,9 +99,9 @@ public sealed class ExplanationTreeBuilder {
 
         private void Condition(List<ExplanationTreeNode> parent, Evaluation evaluation, int depth) {
             string title = evaluation.Condition is ComparisonCondition comparison
-                ? comparison.FactId + "=" + (evaluation.Actual?.Canonical ?? "неизвестно") + " " + comparison.Operator
-                    + " " + comparison.Expected.Canonical + " → " + evaluation.State
-                : (evaluation.Condition is AllCondition ? "И (all)" : "ИЛИ (any)") + " → " + evaluation.State;
+                ? KnowledgeTextFormatter.Name(result.KnowledgeBase, comparison.FactId) + "=" + (evaluation.Actual is null ? "неизвестно" : KnowledgeTextFormatter.Value(evaluation.Actual)) + " " + KnowledgeTextFormatter.Operator(comparison.Operator)
+                    + " " + KnowledgeTextFormatter.Value(comparison.Expected) + " → " + KnowledgeTextFormatter.Truth(evaluation.State)
+                : (evaluation.Condition is AllCondition ? "ВСЕ условия (И)" : "ХОТЯ БЫ ОДНО (ИЛИ)") + " → " + KnowledgeTextFormatter.Truth(evaluation.State);
             Add(parent, title, depth, children => {
                 // используем оценки, записанные при срабатывании; текущие факты не переоцениваем
                 foreach (Evaluation child in evaluation.Children) Condition(children, child, depth + 1);

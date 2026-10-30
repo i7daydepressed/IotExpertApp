@@ -23,7 +23,7 @@ public sealed class DeviceProfileService {
         JsonElement root = document.RootElement;
         KnowledgeJson.Shape(root, "профиль", new[] { "schema_version", "id", "version", "title", "scope",
             "device_id", "config_version", "packet_timeout_ms", "required_sources", "diagnostic_knowledge",
-            "strategy_knowledge", "static_facts", "diagnostic_mapping" }, new[] { "module_check_knowledge" });
+            "strategy_knowledge", "static_facts", "diagnostic_mapping" }, new[] { "module_check_knowledge", "evidence_policy" });
         KnowledgeJson.Require(KnowledgeJson.Number(root.GetProperty("schema_version"), "schema_version") == 1,
             "поддерживается schema_version профиля 1");
         string directory = Path.GetDirectoryName(fullPath)!;
@@ -75,6 +75,7 @@ public sealed class DeviceProfileService {
             KnowledgeJson.Require(module.SchemaVersion == 2 && module.Id == "esp32-module-checks", "не совпала БЗ выборочных проверок");
             IotExpertApp.Services.Checks.ModuleCheckAssessment.ValidateKnowledge(module);
         }
+        EvidencePolicy? evidence = root.TryGetProperty("evidence_policy", out JsonElement policy) ? LoadEvidence(policy, directory, loader, strategy, module) : null;
         string deviceId = KnowledgeJson.Text(root.GetProperty("device_id"), "device_id");
         KnowledgeJson.Require(System.Text.RegularExpressions.Regex.IsMatch(deviceId, @"\Aesp32-[0-9a-fA-F]{12}\z"),
             "device_id профиля должен обозначать конкретную ESP32");
@@ -84,7 +85,53 @@ public sealed class DeviceProfileService {
             KnowledgeJson.Text(root.GetProperty("title"), "profile.title"),
             KnowledgeJson.Text(root.GetProperty("scope"), "profile.scope"), deviceId,
             KnowledgeJson.Text(root.GetProperty("config_version"), "config_version"),
-            Milliseconds(root.GetProperty("packet_timeout_ms")), sources.ToImmutable(), diagnostic, strategy, defaults, mappings.ToImmutable()) { ModuleKnowledge = module };
+            Milliseconds(root.GetProperty("packet_timeout_ms")), sources.ToImmutable(), diagnostic, strategy, defaults, mappings.ToImmutable()) { ModuleKnowledge = module, EvidencePolicy = evidence };
+    }
+
+    private static EvidencePolicy LoadEvidence(JsonElement root, string directory, KnowledgeBaseService loader, KnowledgeBase strategy, KnowledgeBase? moduleKnowledge) {
+        KnowledgeJson.Require(moduleKnowledge is not null, "учет проверок требует module_check_knowledge");
+        KnowledgeJson.Shape(root,"evidence_policy",new[]{"knowledge","modules","mapping"});
+        KnowledgeBase knowledge=loader.Load(Resolve(directory,root.GetProperty("knowledge")));
+        KnowledgeJson.Require(knowledge.SchemaVersion==2&&knowledge.Id=="esp32-evidence-policy","не совпала БЗ связи свидетельств");
+        ImmutableArray<EvidenceModulePolicy>.Builder modules=ImmutableArray.CreateBuilder<EvidenceModulePolicy>();
+        HashSet<string> seen=new HashSet<string>(StringComparer.Ordinal);
+        foreach(JsonElement item in root.GetProperty("modules").EnumerateArray()) {
+            KnowledgeJson.Shape(item,"модуль политики",new[]{"source_id","kind","required","influencing_outcomes"});
+            string source=KnowledgeJson.Id(item.GetProperty("source_id"),"source_id");
+            KnowledgeJson.Require(IotExpertApp.Services.Checks.CheckProtocol.Sources.Contains(source)&&seen.Add(source),"повторный/неизвестный модуль политики");
+            string kind=KnowledgeJson.Text(item.GetProperty("kind"),"kind");
+            string expected=source switch {"esp32"=>"metrics","oled"=>"display","dht11"=>"read","microsd"=>"file","relay_1"or"relay_2"=>"relay",_=>"digital"};
+            KnowledgeJson.Require(kind==expected,"тип модуля не соответствует источнику");
+            ImmutableHashSet<string> impact=item.GetProperty("influencing_outcomes").EnumerateArray().Select(x=>KnowledgeJson.Text(x,"исход")).ToImmutableHashSet(StringComparer.Ordinal);
+            KnowledgeJson.Require(impact.All(x=>x is "negative"or"machine_error"),"неподдержанный влияющий исход");
+            modules.Add(new EvidenceModulePolicy(source,kind,item.GetProperty("required").GetBoolean(),impact));
+        }
+        KnowledgeJson.Require(seen.SetEquals(IotExpertApp.Services.Checks.CheckProtocol.Sources),"политика должна явно описать девять модулей стенда");
+        HashSet<string> expectedInputs=new HashSet<string>(StringComparer.Ordinal){"obs_state"};
+        void Enum(string id,string[] options) {
+            expectedInputs.Add(id);
+            KnowledgeJson.Require(knowledge.Facts.TryGetValue(id,out FactDefinition? f)&&f.Role==FactRole.Input&&f.Type==FactType.Enum&&f.Options.ToHashSet().SetEquals(options),"не совпал enum связи "+id);
+        }
+        Enum("obs_state",new[]{"ready","degraded","incomplete","unknown"});
+        foreach(EvidenceModulePolicy module in modules) {
+            string source=module.Source;
+            Enum("observation_"+source,Statuses);Enum("machine_"+source,EvidenceAssessmentService.Machines);Enum("human_"+source,EvidenceAssessmentService.Humans);Enum("signal_"+source,EvidenceAssessmentService.Signals);
+            foreach(string prefix in new[]{"required_","included_","affect_negative_","affect_machine_error_"}) {
+                string id=prefix+source;expectedInputs.Add(id);
+                KnowledgeJson.Require(knowledge.Facts.TryGetValue(id,out FactDefinition? f)&&f.Role==FactRole.Input&&f.Type==FactType.Boolean,"не совпал bool связи "+id);
+            }
+        }
+        KnowledgeJson.Require(expectedInputs.SetEquals(knowledge.Facts.Values.Where(f=>f.Role==FactRole.Input).Select(f=>f.Id)),"лишние входы БЗ связи");
+        FactDefinition goal=knowledge.Facts.Values.Single(f=>f.Role==FactRole.Goal);
+        string[] outcomes={"ready","degraded","clarify","incomplete"};
+        KnowledgeJson.Require(goal.Type==FactType.Enum&&goal.Options.ToHashSet().SetEquals(outcomes),"исходы БЗ связи");
+        JsonElement mapping=root.GetProperty("mapping");KnowledgeJson.Shape(mapping,"mapping связи",outcomes);
+        ImmutableDictionary<string,ImmutableDictionary<string,KnowledgeValue>>.Builder mappings=ImmutableDictionary.CreateBuilder<string,ImmutableDictionary<string,KnowledgeValue>>(StringComparer.Ordinal);
+        foreach(string outcome in outcomes) {
+            ImmutableDictionary<string,KnowledgeValue> values=Values(mapping.GetProperty(outcome),strategy,new[]{"V2","V3","V4"},outcome is "ready"or"degraded");
+            KnowledgeJson.Require(values.ContainsKey("V2"),"mapping связи должен задать V2");mappings.Add(outcome,values);
+        }
+        return new EvidencePolicy(knowledge,modules.ToImmutable(),mappings.ToImmutable());
     }
 
     private static string Resolve(string directory, JsonElement value) {

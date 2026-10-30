@@ -32,10 +32,23 @@ public class MainWindow : Window {
             Margin = new Thickness(16),
             ItemsSource = new TabItem[] {
                 new TabItem { Header = "Стенд", Content = CreateMonitorPanel() },
-                new TabItem { Header = "Консультация (ручная)", Content = consultation },
-                new TabItem { Header = "Как система решает", Content = CreateKnowledgeWorkspace(editor) }
+                new TabItem { Header = "Виртуальный стенд", Content = CreateVirtualWorkspace(consultation) },
+                new TabItem { Header = "База знаний", Content = CreateKnowledgeWorkspace(editor) }
             }
         };
+    }
+
+    private static Control CreateVirtualWorkspace(ConsultationView consultation) {
+        Grid host = new Grid();
+        VirtualStandView stand = new VirtualStandView();
+        BindProperty(stand, DataContextProperty, nameof(MainViewModel.VirtualStand));
+        BindProperty(stand, IsVisibleProperty, nameof(VirtualStandViewModel.IsStandOpen));
+        DockPanel extra = new DockPanel { LastChildFill = true };
+        Button back = new Button { Content = "Вернуться к виртуальному стенду", Margin = new Thickness(0, 8, 0, 12) };
+        BindProperty(back, Button.CommandProperty, "VirtualStand.CloseConsultationCommand");
+        DockPanel.SetDock(back, Dock.Top); extra.Children.Add(back); extra.Children.Add(consultation);
+        BindProperty(extra, IsVisibleProperty, "VirtualStand.IsConsultationOpen");
+        host.Children.Add(stand); host.Children.Add(extra); return host;
     }
 
     private static Control CreateKnowledgeWorkspace(KnowledgeEditorView editor) {
@@ -71,7 +84,16 @@ public class MainWindow : Window {
         BindProperty(online, DataContextProperty, nameof(MainViewModel.Online)); panel.Children.Add(online);
         LiveMonitorView explanation = new LiveMonitorView(detailsOnly: true);
         BindProperty(explanation, DataContextProperty, nameof(MainViewModel.Live));
-        panel.Children.Add(new Expander { Header = "Объяснение автоматической стратегии и профиль", Content = explanation });
+        Expander selectedExplanation = new Expander { Header = "Объяснение автоматической стратегии и профиль", Content = explanation };
+        BindProperty(selectedExplanation, Expander.IsExpandedProperty, "Live.ExplanationOpen", BindingMode.TwoWay);
+        MainViewModel? attached = null;
+        void ShowExplanation() => Avalonia.Threading.Dispatcher.UIThread.Post(() => selectedExplanation.BringIntoView());
+        panel.DataContextChanged += (_, _) => {
+            if (attached is not null) attached.Live.ExplanationRequested -= ShowExplanation;
+            attached = panel.DataContext as MainViewModel;
+            if (attached is not null) attached.Live.ExplanationRequested += ShowExplanation;
+        };
+        panel.Children.Add(selectedExplanation);
         panel.Children.Add(CreateBoundText(nameof(MainViewModel.Message)));
         StackPanel files = new StackPanel { Spacing = 8 };
         files.Children.Add(CreatePathInput(nameof(MainViewModel.CapturePath),

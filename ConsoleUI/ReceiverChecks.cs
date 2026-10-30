@@ -78,6 +78,7 @@ public static class ReceiverChecks {
             ReceiverStep02Checks.Run();
             KnowledgeChecks.Run();
             Lr1ConsultationChecks.Run();
+            EvidenceAndVirtualChecks.Run(json);
             ConsultationPresentationChecks.Run();
             KnowledgeEditorChecks.Run();
             LiveAssessmentChecks.Run(json);
@@ -88,7 +89,7 @@ public static class ReceiverChecks {
             return 0;
         }
         catch (Exception exception) {
-            Console.Error.WriteLine("проверка не пройдена: " + exception.Message);
+            Console.Error.WriteLine("проверка не пройдена: " + exception);
             return 1;
         }
     }

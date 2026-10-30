@@ -30,5 +30,10 @@ public static class KnowledgeTextFormatter {
         + (string.IsNullOrWhiteSpace(fact.Question) ? "" : "\nВопрос: " + fact.Question);
     public static string Outcome(ConsultationOutcome outcome) => outcome.Description + "\nВид: " + (outcome.Kind switch {
         ConsultationOutcomeKind.Strategy => "стратегия / узкое подтверждение", ConsultationOutcomeKind.Clarification => "уточнение", _ => "отказ / ограничение" }) + " (" + outcome.Kind + ")";
-    private static string Operator(string op) => op switch { "eq" => "= (равно)", "ne" => "≠ (не равно)", "gt" => "> (больше)", "gte" => "≥ (не меньше)", "lt" => "< (меньше)", "lte" => "≤ (не больше)", _ => op + " (оператор)" };
+    public static string Status(InferenceStatus status) => status switch {
+        InferenceStatus.Success => "Цель вывода получена", InferenceStatus.InsufficientData => "Недостаточно данных",
+        InferenceStatus.NoMatch => "Нет подходящего правила", InferenceStatus.Conflict => "Обнаружен конфликт", _ => "Достигнут предел вывода"
+    };
+    public static string Truth(TruthValue value) => value switch { TruthValue.True => "истина", TruthValue.False => "ложь", _ => "неизвестно" };
+    internal static string Operator(string op) => op switch { "eq" => "= (равно)", "ne" => "≠ (не равно)", "gt" => "> (больше)", "gte" => "≥ (не меньше)", "lt" => "< (меньше)", "lte" => "≤ (не больше)", _ => op + " (оператор)" };
 }

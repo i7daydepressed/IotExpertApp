@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "id": "esp32-observability",
-  "version": "stand-monitor-1",
+  "version": "stand-monitor-2",
   "title": "ESP32: контроль получения данных стенда",
-  "scope": "Учебный профиль оценивает только получение свежих наблюдений esp32/oled/dht11/light/ir. A1 означает достаточность этих наблюдений; A2 — показ доступных данных и ошибок до обслуживания. Это не заключение об исправности всего устройства. PIR не подтвержден; microSD проверяется при старте; контакты реле и изображение OLED не контролируются. Полярность цифровых входов и физические пороги не заданы. Автоматического восстановления и управления оборудованием нет.",
+  "scope": "Учебный профиль оценивает только получение свежих наблюдений esp32/oled/dht11/light/ir. A1 означает достаточность этих наблюдений; A2 — показ доступных данных и ошибок до обслуживания. Это не заключение об исправности всего устройства. PIR не подтвержден; microSD проверяется при старте; контакты реле и изображение OLED не контролируются. Полярность цифровых входов и физические пороги не заданы. Автоматического восстановления и управления оборудованием нет. В режиме учета ответов учебная политика связывает результаты выборочных проверок с общей стратегией; отрицательное свидетельство не означает установленную физическую причину.",
   "device_id": "esp32-04b24754d744",
   "config_version": "stand-v1-pir-unverified",
   "packet_timeout_ms": 10000,
@@ -60,5 +60,109 @@
       "V2": "неполные"
     }
   },
-  "module_check_knowledge": "esp32-module-checks.rules.json"
+  "module_check_knowledge": "esp32-module-checks.rules.json",
+  "evidence_policy": {
+    "knowledge": "esp32-evidence.rules.json",
+    "modules": [
+      {
+        "source_id": "esp32",
+        "kind": "metrics",
+        "required": false,
+        "influencing_outcomes": [
+          "negative",
+          "machine_error"
+        ]
+      },
+      {
+        "source_id": "oled",
+        "kind": "display",
+        "required": false,
+        "influencing_outcomes": [
+          "negative",
+          "machine_error"
+        ]
+      },
+      {
+        "source_id": "dht11",
+        "kind": "read",
+        "required": false,
+        "influencing_outcomes": [
+          "negative",
+          "machine_error"
+        ]
+      },
+      {
+        "source_id": "light",
+        "kind": "digital",
+        "required": false,
+        "influencing_outcomes": [
+          "negative",
+          "machine_error"
+        ]
+      },
+      {
+        "source_id": "ir",
+        "kind": "digital",
+        "required": false,
+        "influencing_outcomes": [
+          "negative",
+          "machine_error"
+        ]
+      },
+      {
+        "source_id": "pir",
+        "kind": "digital",
+        "required": false,
+        "influencing_outcomes": [
+          "negative",
+          "machine_error"
+        ]
+      },
+      {
+        "source_id": "microsd",
+        "kind": "file",
+        "required": false,
+        "influencing_outcomes": [
+          "negative",
+          "machine_error"
+        ]
+      },
+      {
+        "source_id": "relay_1",
+        "kind": "relay",
+        "required": false,
+        "influencing_outcomes": [
+          "negative",
+          "machine_error"
+        ]
+      },
+      {
+        "source_id": "relay_2",
+        "kind": "relay",
+        "required": false,
+        "influencing_outcomes": [
+          "negative",
+          "machine_error"
+        ]
+      }
+    ],
+    "mapping": {
+      "ready": {
+        "V2": "достаточные",
+        "V3": "отсутствует",
+        "V4": "без ограничений"
+      },
+      "degraded": {
+        "V2": "достаточные",
+        "V3": "подтверждено",
+        "V4": "только ограниченный режим"
+      },
+      "clarify": {
+        "V2": "достаточные"
+      },
+      "incomplete": {
+        "V2": "неполные"
+      }
+    }
+  }
 }

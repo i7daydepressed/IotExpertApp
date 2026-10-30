@@ -40,7 +40,7 @@ public sealed class GuidedCheckCoordinator {
         ulong id = session.State().PendingId!.Value;
         Current = new GuidedCheckResult(packet.DeviceId, packet.BootId, packet.FirmwareVersion, packet.ConfigVersion, id, source, operation,
             state.Origin, protocol, seconds, operation == "observe" ? window : null, knowledge,
-            "starting", "pending", now(), now() + TimeSpan.FromSeconds(12), null, null, null, false, null);
+            "starting", "pending", now(), now() + TimeSpan.FromSeconds(12), null, null, null, false, null) { ContextId = state.ContextId };
         session.SetWorkflowBusy(true);
         Recompute(); Message = "Запрос " + id + ": ожидаем запуск"; return true;
     }
@@ -153,8 +153,15 @@ public sealed class GuidedCheckCoordinator {
     private void Recompute() { if (Current is not null) Current = Current with { Inference = ModuleCheckAssessment.Run(Current) }; }
     private void Finish(string phase, string reason, string message) {
         if (Current is null) return;
-        Current = Current with { Phase = phase, EndReason = reason }; Recompute();
-        history.Add(Current!); if (history.Count > 32) history.RemoveAt(0);
+        Current = Current with { Phase = phase, EndReason = reason, CompletedAt = DateTimeOffset.UtcNow }; Recompute();
+        history.Add(Current!);
+        // лимит истории не должен снимать последнее замечание текущего контекста при проверках других модулей
+        if (history.Count > 32) {
+            int index = history.FindIndex(r => r.ContextId != Current.ContextId || r.Boot != Current.Boot || r.Phase != "finished" || r.Machine?.Stage is not ("completed" or "failed") || r.Inference is null
+                || history.Skip(history.IndexOf(r) + 1).Any(next => next.Source == r.Source && next.ContextId == r.ContextId && next.Boot == r.Boot
+                    && next.Knowledge?.Sha256 == r.Knowledge?.Sha256 && next.Phase == "finished" && (next.Machine?.Stage is "completed" or "failed") && next.Inference is not null));
+            if (index >= 0) history.RemoveAt(index);
+        }
         session.SetWorkflowBusy(false); Message = message;
     }
 }
